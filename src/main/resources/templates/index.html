@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLMS - 部品開発ワークフロー</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans p-8">
+    <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-lg border border-gray-100 p-8">
+        <h1 class="text-3xl font-extrabold mb-8 text-blue-700">⚙️部品発注・管理・廃棄システム (PLMS)</h1>
+        
+        <!-- Alerts -->
+        <div th:if="${message}" class="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-r-md shadow-sm" role="alert">
+            <p th:text="${message}" class="font-medium"></p>
+        </div>
+        <div th:if="${error}" class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-r-md shadow-sm" role="alert">
+            <p th:text="${error}" class="font-medium"></p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+            <!-- New Part Registration Form -->
+            <div class="bg-blue-50/50 p-6 rounded-xl border border-blue-100">
+                <h2 class="text-xl font-bold mb-4 text-gray-800">新規部品登録</h2>
+                <form th:action="@{/parts}" method="post" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700">部品コード</label>
+                        <input type="text" name="productCode" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-2 px-3 border bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700">部品名</label>
+                        <input type="text" name="name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-2 px-3 border bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700">初期在庫数</label>
+                        <input type="number" name="stockQuantity" value="0" min="0" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-2 px-3 border bg-white">
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition duration-150 ease-in-out shadow-sm">
+                        登録する
+                    </button>
+                </form>
+            </div>
+
+            <!-- Description/Usage info -->
+            <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                <h2 class="text-xl font-bold mb-4 text-gray-800">システム概要</h2>
+                <p class="text-gray-600 text-sm leading-relaxed mb-4">
+                    製造現場やメンテナンス業務における部品の「発注・受入・在庫管理・廃棄」までのライフサイクルを一元管理します。
+                </p>
+                <ul class="list-disc list-inside space-y-2 text-sm text-gray-700">
+                    <li><span class="font-bold">発注 (Order):</span> 在庫不足時の補充申請</li>
+                    <li><span class="font-bold">入庫 (Receive):</span> 납품 후의 검수 및 재고 반영</li>
+                    <li><span class="font-bold">廃棄 (Dispose):</span> 不良品の廃棄承認プロセス</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2 class="text-2xl font-bold mb-4 text-gray-800">📦 在庫及び管理リスト</h2>
+        <div class="overflow-x-auto bg-white rounded-lg border border-gray-200">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">部品コード</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">部品名</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">在庫数</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">最新更新日</th>
+                        <th class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">アクション</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    <tr th:each="part : ${parts}" class="hover:bg-gray-50 transition duration-150 ease-in-out">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" th:text="${part.productCode}"></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700" th:text="${part.name}"></td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span th:text="${part.stockQuantity}" th:class="${part.stockQuantity < 10 ? 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800' : 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800'}">
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" th:text="${#temporals.format(part.updatedAt, 'yyyy-MM-dd HH:mm')}"></td>
+                        <td class="px-6 py-4 whitespace-nowrap font-medium text-center space-x-2">
+                            <form th:action="@{/parts/{code}/order(code=${part.productCode})}" method="post" class="inline">
+                                <input type="hidden" name="quantity" value="10">
+                                <input type="hidden" name="remarks" value="정기 발주">
+                                <button type="submit" class="text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded border border-blue-200 hover:bg-blue-100 transition">発注(+10)</button>
+                            </form>
+                            <form th:action="@{/parts/{code}/dispose(code=${part.productCode})}" method="post" class="inline">
+                                <input type="hidden" name="quantity" value="1">
+                                <input type="hidden" name="remarks" value="불량 폐기">
+                                <button type="submit" class="text-red-600 hover:text-red-900 bg-red-50 px-3 py-1 rounded border border-red-200 hover:bg-red-100 transition" th:disabled="${part.stockQuantity < 1}" th:classappend="${part.stockQuantity < 1 ? 'opacity-50 cursor-not-allowed' : ''}">廃棄(-1)</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(parts)}">
+                        <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+                            登録された部品がありません。上のフォームから新規登録してください。
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

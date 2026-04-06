@@ -1,0 +1,15 @@
+{
+  "name": "legacy-to-modern",
+  "version": "1.0.0",
+  "description": "このプロジェクトは、私たちだけのカスタムウェディング招待状を作成するために開発されたウェブアプリケーションです。 ポートフォリオとしても活用できるよう、プロジェクトの背景や技術的な工夫点を以下にまとめました。",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "tailwindcss": "^4.2.2"
+  }
+}
