@@ -5,46 +5,59 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "part_transactions")
-public class PartTransaction {
+@Table(name = "purchase_orders")
+public class PurchaseOrder {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false, unique = true)
+    private String orderNumber;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "part_id", nullable = false)
     private Part part;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Status status;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "supplier_id")
+    private Supplier supplier;
 
     @Column(nullable = false)
     private int quantity;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private OrderStatus status;
+
     private LocalDate expectedArrivalDate;
 
-    private LocalDateTime transactionDate;
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime orderDate;
+    
     private String remarks;
-
-    @PrePersist
-    public void prePersist() {
-        this.transactionDate = LocalDateTime.now();
-    }
 
     // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+    public String getOrderNumber() { return orderNumber; }
+    public void setOrderNumber(String orderNumber) { this.orderNumber = orderNumber; }
     public Part getPart() { return part; }
     public void setPart(Part part) { this.part = part; }
-    public Status getStatus() { return status; }
-    public void setStatus(Status status) { this.status = status; }
+    public Supplier getSupplier() { return supplier; }
+    public void setSupplier(Supplier supplier) { this.supplier = supplier; }
     public int getQuantity() { return quantity; }
     public void setQuantity(int quantity) { this.quantity = quantity; }
+    public OrderStatus getStatus() { return status; }
+    public void setStatus(OrderStatus status) { this.status = status; }
     public LocalDate getExpectedArrivalDate() { return expectedArrivalDate; }
     public void setExpectedArrivalDate(LocalDate expectedArrivalDate) { this.expectedArrivalDate = expectedArrivalDate; }
-    public LocalDateTime getTransactionDate() { return transactionDate; }
+    public LocalDateTime getOrderDate() { return orderDate; }
     public String getRemarks() { return remarks; }
     public void setRemarks(String remarks) { this.remarks = remarks; }
+
+    @PrePersist
+    public void prePersist() {
+        this.orderDate = LocalDateTime.now();
+    }
 }

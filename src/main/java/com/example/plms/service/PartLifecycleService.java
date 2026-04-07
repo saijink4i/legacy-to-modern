@@ -1,13 +1,12 @@
 package com.example.plms.service;
 
-import com.example.plms.domain.Part;
-import com.example.plms.domain.PartTransaction;
-import com.example.plms.domain.Status;
-import com.example.plms.repository.PartRepository;
-import com.example.plms.repository.PartTransactionRepository;
+import com.example.plms.domain.*;
+import com.example.plms.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,28 +15,53 @@ import java.util.Optional;
 public class PartLifecycleService {
 
     private final PartRepository partRepository;
-    private final PartTransactionRepository transactionRepository;
+    private final SupplierRepository supplierRepository;
+    private final InventoryRepository inventoryRepository;
+    private final PurchaseOrderRepository orderRepository;
+    private final ReceiptLogRepository receiptRepository;
+    private final DisposeLogRepository disposeRepository;
 
-    public PartLifecycleService(PartRepository partRepository, PartTransactionRepository transactionRepository) {
+    public PartLifecycleService(PartRepository partRepository,
+                                SupplierRepository supplierRepository,
+                                InventoryRepository inventoryRepository,
+                                PurchaseOrderRepository orderRepository,
+                                ReceiptLogRepository receiptRepository,
+                                DisposeLogRepository disposeRepository) {
         this.partRepository = partRepository;
-        this.transactionRepository = transactionRepository;
+        this.supplierRepository = supplierRepository;
+        this.inventoryRepository = inventoryRepository;
+        this.orderRepository = orderRepository;
+        this.receiptRepository = receiptRepository;
+        this.disposeRepository = disposeRepository;
     }
 
     // 부품 신규 등록
     public Part registerPart(Part part) {
-        if (part.getPrice() <= 0) {
-            throw new IllegalArgumentException("부품 가격은 0보다 커야 합니다.");
+        if (part.getPrice() < 0) {
+            throw new IllegalArgumentException("부품 가격은 0 이상이어야 합니다.");
         }
         if (part.getOrderUnit() <= 0) {
             throw new IllegalArgumentException("발주 단위 수량은 1 이상이어야 합니다.");
         }
-        return partRepository.save(part);
+        Part savedPart = partRepository.save(part);
+        
+        // 부품 마스터 생성 시 자동으로 재고 마스터도 생성
+        Inventory inventory = new Inventory();
+        inventory.setPart(savedPart);
+        inventoryRepository.save(inventory);
+        
+        return savedPart;
+    }
+    
+    // 거래처 신규 등록 (선택적)
+    public Supplier registerSupplier(Supplier supplier) {
+        return supplierRepository.save(supplier);
     }
     
     // 부품 마스터 업데이트
     public Part updatePartMaster(String productCode, int price, int orderUnit, String expirationDate, int leadTimeDays) {
-        if (price <= 0) {
-            throw new IllegalArgumentException("부품 가격은 0보다 커야 합니다.");
+        if (price < 0) {
+            throw new IllegalArgumentException("부품 가격은 0 이상이어야 합니다.");
         }
         if (orderUnit <= 0) {
             throw new IllegalArgumentException("발주 단위 수량은 1 이상이어야 합니다.");
@@ -52,10 +76,15 @@ public class PartLifecycleService {
         return partRepository.save(part);
     }
     
-    // 부품 단건 혹은 전체 목록 조회
+    // 부품 및 재고 전체 조회
     @Transactional(readOnly = true)
     public List<Part> getAllParts() {
         return partRepository.findAll();
+    }
+    
+    @Transactional(readOnly = true)
+    public List<Inventory> getAllInventories() {
+        return inventoryRepository.findAll();
     }
 
     @Transactional(readOnly = true)
@@ -64,12 +93,12 @@ public class PartLifecycleService {
     }
 
     @Transactional(readOnly = true)
-    public List<PartTransaction> getPendingTransactions() {
-        return transactionRepository.findByStatus(Status.ORDERED);
+    public List<PurchaseOrder> getPendingOrders() {
+        return orderRepository.findByStatus(OrderStatus.PENDING);
     }
 
     // 1. 발주 (Order)
-    public PartTransaction orderPart(String productCode, int quantity, String remarks, java.time.LocalDate expectedArrivalDate) {
+    public PurchaseOrder orderPart(String productCode, int quantity, String remarks, LocalDate expectedArrivalDate) {
         if (quantity <= 0) {
             throw new IllegalArgumentException("발주 수량은 1개 이상이어야 합니다.");
         }
@@ -77,76 +106,67 @@ public class PartLifecycleService {
         Part part = partRepository.findByProductCode(productCode)
                 .orElseThrow(() -> new IllegalArgumentException("해당 부품 코드(" + productCode + ")를 찾을 수 없습니다."));
 
+        Inventory inventory = inventoryRepository.findByPart(part)
+                .orElseThrow(() -> new IllegalStateException("재고 정보가 초기화되지 않았습니다."));
+
         int totalQuantity = quantity * part.getOrderUnit();
 
-        PartTransaction transaction = new PartTransaction();
-        transaction.setPart(part);
-        transaction.setStatus(Status.ORDERED);
-        transaction.setQuantity(totalQuantity);
+        PurchaseOrder order = new PurchaseOrder();
+        // 간단한 고유 주문번호 생성: "ORD-날짜-밀리초"
+        String datePrefix = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String uniqueSuffix = String.valueOf(System.currentTimeMillis()).substring(8);
+        order.setOrderNumber("ORD-" + datePrefix + "-" + uniqueSuffix);
         
-        java.time.LocalDate minDate = java.time.LocalDate.now().plusDays(part.getLeadTimeDays());
+        order.setPart(part);
+        order.setStatus(OrderStatus.PENDING);
+        order.setQuantity(totalQuantity);
+        
+        LocalDate minDate = LocalDate.now().plusDays(part.getLeadTimeDays());
         if (expectedArrivalDate != null && expectedArrivalDate.isBefore(minDate)) {
             throw new IllegalArgumentException("입하 예정일은 기본 리드타임(" + minDate + ") 이전으로 설정할 수 없습니다.");
         }
-        transaction.setExpectedArrivalDate(expectedArrivalDate != null ? expectedArrivalDate : minDate);
+        order.setExpectedArrivalDate(expectedArrivalDate != null ? expectedArrivalDate : minDate);
+        order.setRemarks(remarks);
         
-        transaction.setRemarks(remarks + " (単位: " + part.getOrderUnit() + " x " + quantity + ")");
-        
-        part.setIncomingQuantity(part.getIncomingQuantity() + totalQuantity);
-        partRepository.save(part);
+        // 재고 마스터 업데이트: 입하 예정 수량 증가
+        inventory.setPendingIncoming(inventory.getPendingIncoming() + totalQuantity);
+        inventoryRepository.save(inventory);
 
-        return transactionRepository.save(transaction);
+        return orderRepository.save(order);
     }
 
-    // 2. 단건 입고 (Receive by code)
-    public PartTransaction receivePartByCode(String productCode, int quantity, String remarks) {
-        if (quantity <= 0) {
-            throw new IllegalArgumentException("입고 수량은 1개 이상이어야 합니다.");
+    // 2. 바코드 기반 입하 처리 (Receive)
+    public ReceiptLog receiveOrder(String orderNumber) {
+        PurchaseOrder order = orderRepository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new IllegalArgumentException("해당 주문번호 (" + orderNumber + ")를 찾을 수 없습니다."));
+
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new IllegalStateException("해당 주문은 이미 처리되었거나 취소되었습니다.");
         }
 
-        Part part = partRepository.findByProductCode(productCode)
-                .orElseThrow(() -> new IllegalArgumentException("해당 부품 코드(" + productCode + ")를 찾을 수 없습니다."));
+        Inventory inventory = inventoryRepository.findByPart(order.getPart())
+                .orElseThrow(() -> new IllegalStateException("재고 마스터가 존재하지 않습니다."));
 
-        if (part.getIncomingQuantity() < quantity) {
-            throw new IllegalStateException("입고 수량이 입하 예정 물량보다 많습니다.");
-        }
+        // 상태값 변경
+        order.setStatus(OrderStatus.COMPLETED);
+        orderRepository.save(order);
 
-        part.setIncomingQuantity(part.getIncomingQuantity() - quantity);
-        part.setStockQuantity(part.getStockQuantity() + quantity);
-        partRepository.save(part);
+        // 재고 마스터 업데이트: 예정 수량 차감, 실제 재고 증가
+        inventory.setPendingIncoming(inventory.getPendingIncoming() - order.getQuantity());
+        inventory.setCurrentStock(inventory.getCurrentStock() + order.getQuantity());
+        inventoryRepository.save(inventory);
 
-        PartTransaction transaction = new PartTransaction();
-        transaction.setPart(part);
-        transaction.setStatus(Status.RECEIVED);
-        transaction.setQuantity(quantity);
-        transaction.setRemarks(remarks);
+        // 입하 로그 기록
+        ReceiptLog log = new ReceiptLog();
+        log.setOrder(order);
+        log.setReceivedQuantity(order.getQuantity());
+        log.setRemarks("바코드 스캔 입고 완료");
 
-        return transactionRepository.save(transaction);
-    }
-
-    // 2. 단건 입고 (Receive)
-    public PartTransaction receivePart(Long transactionId, String remarks) {
-        PartTransaction transaction = transactionRepository.findById(transactionId)
-                .orElseThrow(() -> new IllegalArgumentException("트랜잭션을 찾을 수 없습니다."));
-
-        if (transaction.getStatus() != Status.ORDERED) {
-            throw new IllegalStateException("발주 상태(ORDERED)인 정보만 입고 처리할 수 있습니다.");
-        }
-
-        transaction.setStatus(Status.RECEIVED);
-        String finalRemarks = Optional.ofNullable(transaction.getRemarks()).orElse("") 
-                              + " | Received: " + Optional.ofNullable(remarks).orElse("");
-        transaction.setRemarks(finalRemarks);
-
-        Part part = transaction.getPart();
-        part.setStockQuantity(part.getStockQuantity() + transaction.getQuantity());
-        partRepository.save(part);
-
-        return transactionRepository.save(transaction);
+        return receiptRepository.save(log);
     }
 
     // 3. 폐기 (Dispose)
-    public PartTransaction disposePart(String productCode, int quantity, String remarks) {
+    public DisposeLog disposePart(String productCode, int quantity, String reason) {
         if (quantity <= 0) {
             throw new IllegalArgumentException("폐기 수량은 1개 이상이어야 합니다.");
         }
@@ -154,38 +174,23 @@ public class PartLifecycleService {
         Part part = partRepository.findByProductCode(productCode)
                 .orElseThrow(() -> new IllegalArgumentException("해당 부품 코드(" + productCode + ")를 찾을 수 없습니다."));
 
-        if (part.getStockQuantity() < quantity) {
-            throw new IllegalStateException("부품의 재고가 폐기 수량보다 적어 처리할 수 없습니다.");
+        Inventory inventory = inventoryRepository.findByPart(part)
+                .orElseThrow(() -> new IllegalStateException("재고 정보가 없습니다."));
+
+        if (inventory.getCurrentStock() < quantity) {
+            throw new IllegalStateException("지정한 수량만큼의 재고가 부족합니다.");
         }
 
-        part.setStockQuantity(part.getStockQuantity() - quantity);
-        partRepository.save(part);
+        // 재고 마스터 업데이트: 실제 재고 차감
+        inventory.setCurrentStock(inventory.getCurrentStock() - quantity);
+        inventoryRepository.save(inventory);
 
-        PartTransaction transaction = new PartTransaction();
-        transaction.setPart(part);
-        transaction.setStatus(Status.DISPOSED);
-        transaction.setQuantity(quantity);
-        transaction.setRemarks(remarks);
+        // 폐기 로그 기록
+        DisposeLog log = new DisposeLog();
+        log.setPart(part);
+        log.setDisposedQuantity(quantity);
+        log.setReason(reason);
 
-        return transactionRepository.save(transaction);
-    }
-
-    // 레거시 코드 개선: 다량 발주건에 대한 일괄 병렬/스트림 처리
-    public List<PartTransaction> bulkReceive(List<Long> transactionIds, String batchRemarks) {
-        return transactionIds.stream()
-                .map(transactionRepository::findById)
-                .flatMap(Optional::stream)
-                .filter(t -> t.getStatus() == Status.ORDERED)
-                .map(t -> {
-                    t.setStatus(Status.RECEIVED);
-                    t.setRemarks(Optional.ofNullable(t.getRemarks()).orElse("") + " | BATCH: " + batchRemarks);
-
-                    Part part = t.getPart();
-                    part.setStockQuantity(part.getStockQuantity() + t.getQuantity());
-                    partRepository.save(part);
-
-                    return transactionRepository.save(t);
-                })
-                .toList();
+        return disposeRepository.save(log);
     }
 }
