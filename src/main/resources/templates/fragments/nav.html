@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
-    <nav th:fragment="navbar" class="bg-gray-900 shadow-md sticky top-0 z-50">
+    <nav th:fragment="navbar(activeTab)" class="bg-gray-900 shadow-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <div class="flex items-center">
@@ -12,19 +12,19 @@
                     <div class="hidden md:block">
                         <div class="ml-10 flex items-baseline space-x-4">
                             <!-- Helper logic: determine active class dynamically -->
-                            <a href="/inventory" th:classappend="${#httpServletRequest.requestURI == '/inventory' ? 'bg-gray-800 text-white border-b-2 border-indigo-400' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}" class="px-3 py-2 rounded-t-md text-sm font-medium transition flex items-center gap-2">
+                            <a href="/inventory" th:classappend="${activeTab == 'inventory' ? 'bg-gray-800 text-white border-b-2 border-indigo-400' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}" class="px-3 py-2 rounded-t-md text-sm font-medium transition flex items-center gap-2">
                                 <span>📦</span> 在庫確認 (Inventory)
                             </a>
-                            <a href="/order" th:classappend="${#httpServletRequest.requestURI == '/order' ? 'bg-gray-800 text-white border-b-2 border-indigo-400' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}" class="px-3 py-2 rounded-t-md text-sm font-medium transition flex items-center gap-2">
+                            <a href="/order" th:classappend="${activeTab == 'order' ? 'bg-gray-800 text-white border-b-2 border-indigo-400' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}" class="px-3 py-2 rounded-t-md text-sm font-medium transition flex items-center gap-2">
                                 <span>🛒</span> 発注 (Order)
                             </a>
-                            <a href="/receive" th:classappend="${#httpServletRequest.requestURI == '/receive' ? 'bg-gray-800 text-white border-b-2 border-indigo-400' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}" class="px-3 py-2 rounded-t-md text-sm font-medium transition flex items-center gap-2">
+                            <a href="/receive" th:classappend="${activeTab == 'receive' ? 'bg-gray-800 text-white border-b-2 border-indigo-400' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}" class="px-3 py-2 rounded-t-md text-sm font-medium transition flex items-center gap-2">
                                 <span>📥</span> 入庫処理 (Receive)
                             </a>
-                            <a href="/dispose" th:classappend="${#httpServletRequest.requestURI == '/dispose' ? 'bg-gray-800 text-white border-b-2 border-indigo-400' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}" class="px-3 py-2 rounded-t-md text-sm font-medium transition flex items-center gap-2">
+                            <a href="/dispose" th:classappend="${activeTab == 'dispose' ? 'bg-gray-800 text-white border-b-2 border-indigo-400' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}" class="px-3 py-2 rounded-t-md text-sm font-medium transition flex items-center gap-2">
                                 <span>🗑️</span> 廃棄 (Dispose)
                             </a>
-                            <a href="/master" th:classappend="${#httpServletRequest.requestURI == '/master' ? 'bg-gray-800 text-white border-b-2 border-indigo-400' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}" class="px-3 py-2 rounded-t-md text-sm font-medium transition flex items-center gap-2">
+                            <a href="/master" th:classappend="${activeTab == 'master' ? 'bg-gray-800 text-white border-b-2 border-indigo-400' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}" class="px-3 py-2 rounded-t-md text-sm font-medium transition flex items-center gap-2">
                                 <span>⚙️</span> マスター管理 (Master)
                             </a>
                         </div>
