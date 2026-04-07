@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLMS - 部品マスター管理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans p-8">
+    <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-lg border border-gray-100 p-8">
+        
+        <nav class="bg-white shadow-sm border border-gray-100 mb-8 flex space-x-6 px-6 py-4 rounded-xl">
+            <a href="/" class="text-gray-500 hover:text-blue-700 font-medium pb-1 transition">📦 在庫管理 (Inventory)</a>
+            <a href="/master" class="text-blue-700 font-bold border-b-2 border-blue-700 pb-1">⚙️ 部品マスター (Part Master)</a>
+        </nav>
+
+        <h1 class="text-3xl font-extrabold mb-8 text-blue-700">⚙️部品マスターデータ更新</h1>
+        
+        <!-- Alerts -->
+        <div th:if="${message}" class="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-r-md shadow-sm" role="alert">
+            <p th:text="${message}" class="font-medium"></p>
+        </div>
+        <div th:if="${error}" class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-r-md shadow-sm" role="alert">
+            <p th:text="${error}" class="font-medium"></p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+            <!-- New Part Registration Form -->
+            <div class="md:col-span-1 bg-green-50/50 p-6 rounded-xl border border-green-100 h-fit">
+                <h2 class="text-xl font-bold mb-4 text-gray-800">新規部品マスター登録</h2>
+                <form th:action="@{/parts}" method="post" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700">部品コード</label>
+                        <input type="text" name="productCode" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700">部品名</label>
+                        <input type="text" name="name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border bg-white">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700">初期在庫数</label>
+                            <input type="number" name="stockQuantity" value="0" min="0" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700">価格</label>
+                            <input type="number" name="price" value="100" min="1" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border bg-white">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700">注文単位数</label>
+                            <input type="number" name="orderUnit" value="1" min="1" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700">有効期間(日)</label>
+                            <input type="number" name="expirationDays" value="365" min="0" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border bg-white">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition duration-150 shadow-sm mt-4">
+                        登録する
+                    </button>
+                </form>
+            </div>
+
+            <!-- Master List Update -->
+            <div class="md:col-span-2 bg-gray-50 p-6 rounded-xl border border-gray-200">
+                <h2 class="text-xl font-bold mb-4 text-gray-800">登録済みマスターデータ一覧</h2>
+                
+                <div class="overflow-x-auto bg-white rounded-lg border border-gray-200">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">コード/部品名</th>
+                                <th class="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">価格</th>
+                                <th class="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">注文単位(N個)</th>
+                                <th class="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">有効(日)</th>
+                                <th class="px-3 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">編集</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            <tr th:each="part : ${parts}" class="hover:bg-gray-50 transition">
+                                <form th:action="@{/master/update}" method="post">
+                                    <input type="hidden" name="productCode" th:value="${part.productCode}">
+                                    
+                                    <td class="px-3 py-4">
+                                        <div class="text-sm font-bold text-gray-900" th:text="${part.productCode}"></div>
+                                        <div class="text-xs text-gray-500" th:text="${part.name}"></div>
+                                    </td>
+                                    <td class="px-3 py-4">
+                                        <input type="number" name="price" th:value="${part.price}" class="w-16 border rounded px-2 py-1 text-sm bg-white" required min="1">
+                                    </td>
+                                    <td class="px-3 py-4">
+                                        <input type="number" name="orderUnit" th:value="${part.orderUnit}" class="w-16 border rounded px-2 py-1 text-sm bg-white" required min="1">
+                                    </td>
+                                    <td class="px-3 py-4">
+                                        <input type="number" name="expirationDays" th:value="${part.expirationDays}" class="w-16 border rounded px-2 py-1 text-sm bg-white" required min="0">
+                                    </td>
+                                    <td class="px-3 py-4 text-center">
+                                        <button type="submit" class="text-blue-600 hover:text-white border border-blue-600 hover:bg-blue-600 px-3 py-1 rounded transition text-xs font-bold">更新</button>
+                                    </td>
+                                </form>
+                            </tr>
+                            <tr th:if="${#lists.isEmpty(parts)}">
+                                <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+                                    データがありません。
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

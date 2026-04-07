@@ -23,6 +23,15 @@ public class Part {
     @Column(nullable = false, columnDefinition = "integer default 0")
     private int incomingQuantity = 0;
 
+    @Column(nullable = false, columnDefinition = "integer default 100")
+    private int price = 100;
+
+    @Column(nullable = false, columnDefinition = "integer default 1")
+    private int orderUnit = 1;
+
+    @Column(nullable = false, columnDefinition = "integer default 0")
+    private int expirationDays = 0;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -51,6 +60,12 @@ public class Part {
     public void setStockQuantity(int stockQuantity) { this.stockQuantity = stockQuantity; }
     public int getIncomingQuantity() { return incomingQuantity; }
     public void setIncomingQuantity(int incomingQuantity) { this.incomingQuantity = incomingQuantity; }
+    public int getPrice() { return price; }
+    public void setPrice(int price) { this.price = price; }
+    public int getOrderUnit() { return orderUnit; }
+    public void setOrderUnit(int orderUnit) { this.orderUnit = orderUnit; }
+    public int getExpirationDays() { return expirationDays; }
+    public void setExpirationDays(int expirationDays) { this.expirationDays = expirationDays; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 }

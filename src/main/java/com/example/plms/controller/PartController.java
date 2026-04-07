@@ -23,6 +23,12 @@ public class PartController {
         return "index";
     }
 
+    @GetMapping("/master")
+    public String masterData(Model model) {
+        model.addAttribute("parts", partService.getAllParts());
+        return "part-master";
+    }
+
     @PostMapping("/parts")
     public String registerPart(Part part, RedirectAttributes redirectAttributes) {
         try {
@@ -31,7 +37,18 @@ public class PartController {
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "부품 등록 실패: " + e.getMessage());
         }
-        return "redirect:/";
+        return "redirect:/master";
+    }
+
+    @PostMapping("/master/update")
+    public String updateMaster(@RequestParam String productCode, @RequestParam int price, @RequestParam int orderUnit, @RequestParam int expirationDays, RedirectAttributes redirectAttributes) {
+        try {
+            partService.updatePartMaster(productCode, price, orderUnit, expirationDays);
+            redirectAttributes.addFlashAttribute("message", "부품 마스터(" + productCode + ")가 수정되었습니다.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "마스터 수정 실패: " + e.getMessage());
+        }
+        return "redirect:/master";
     }
 
     @PostMapping("/parts/{code}/order")

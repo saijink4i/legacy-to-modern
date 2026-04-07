@@ -25,6 +25,29 @@ public class PartLifecycleService {
 
     // 부품 신규 등록
     public Part registerPart(Part part) {
+        if (part.getPrice() <= 0) {
+            throw new IllegalArgumentException("부품 가격은 0보다 커야 합니다.");
+        }
+        if (part.getOrderUnit() <= 0) {
+            throw new IllegalArgumentException("발주 단위 수량은 1 이상이어야 합니다.");
+        }
+        return partRepository.save(part);
+    }
+    
+    // 부품 마스터 업데이트
+    public Part updatePartMaster(String productCode, int price, int orderUnit, int expirationDays) {
+        if (price <= 0) {
+            throw new IllegalArgumentException("부품 가격은 0보다 커야 합니다.");
+        }
+        if (orderUnit <= 0) {
+            throw new IllegalArgumentException("발주 단위 수량은 1 이상이어야 합니다.");
+        }
+        Part part = partRepository.findByProductCode(productCode)
+                .orElseThrow(() -> new IllegalArgumentException("해당 부품 코드(" + productCode + ")를 찾을 수 없습니다."));
+        
+        part.setPrice(price);
+        part.setOrderUnit(orderUnit);
+        part.setExpirationDays(expirationDays);
         return partRepository.save(part);
     }
     
@@ -48,13 +71,15 @@ public class PartLifecycleService {
         Part part = partRepository.findByProductCode(productCode)
                 .orElseThrow(() -> new IllegalArgumentException("해당 부품 코드(" + productCode + ")를 찾을 수 없습니다."));
 
+        int totalQuantity = quantity * part.getOrderUnit();
+
         PartTransaction transaction = new PartTransaction();
         transaction.setPart(part);
         transaction.setStatus(Status.ORDERED);
-        transaction.setQuantity(quantity);
-        transaction.setRemarks(remarks);
+        transaction.setQuantity(totalQuantity);
+        transaction.setRemarks(remarks + " (単位: " + part.getOrderUnit() + " x " + quantity + ")");
         
-        part.setIncomingQuantity(part.getIncomingQuantity() + quantity);
+        part.setIncomingQuantity(part.getIncomingQuantity() + totalQuantity);
         partRepository.save(part);
 
         return transactionRepository.save(transaction);
