@@ -51,7 +51,9 @@ public class PartController {
 
     // 2. Barcode Receive Page
     @GetMapping("/receive")
-    public String receivePage() {
+    public String receivePage(Model model) {
+        model.addAttribute("allMasterParts", partService.getAllParts());
+        model.addAttribute("pendingOrders", partService.getPendingOrders());
         return "receive";
     }
 
