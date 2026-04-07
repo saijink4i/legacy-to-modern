@@ -3,18 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PLMS - 部品開発ワークフロー</title>
-    <!-- Tailwind CSS CDN -->
+    <title>PLMS - 在庫管理</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans p-8">
+<body class="bg-gray-50 text-gray-800 font-sans p-8 relative">
     <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-lg border border-gray-100 p-8">
-        <nav class="bg-white shadow-sm border border-gray-100 mb-8 flex space-x-6 px-6 py-4 rounded-xl">
-            <a href="/" class="text-blue-700 font-bold border-b-2 border-blue-700 pb-1">📦 在庫管理 (Inventory)</a>
-            <a href="/master" class="text-gray-500 hover:text-blue-700 font-medium pb-1 transition">⚙️ 部品マスター (Part Master)</a>
+        
+        <nav class="bg-white shadow-sm border border-gray-100 mb-8 flex flex-col md:flex-row space-y-4 md:space-y-0 px-6 py-4 rounded-xl items-center justify-between">
+            <div class="flex space-x-6">
+                <a href="/" class="text-blue-700 font-bold border-b-2 border-blue-700 pb-1">📦 在庫管理 (Inventory)</a>
+                <a href="/master" class="text-gray-500 hover:text-blue-700 font-medium pb-1 transition">⚙️ 部品マスター (Part Master)</a>
+            </div>
+            <button onclick="openOrderModal('')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition duration-150 shadow-sm flex items-center gap-2 text-sm w-full md:w-auto justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
+                </svg>
+                発注 (新規注文)
+            </button>
         </nav>
 
-        <h1 class="text-3xl font-extrabold mb-8 text-blue-700">⚙️部品発注・管理・廃棄システム (PLMS)</h1>
+        <h1 class="text-3xl font-extrabold mb-8 text-blue-700">📦 実在庫・管理リスト</h1>
         
         <!-- Alerts -->
         <div th:if="${message}" class="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-r-md shadow-sm" role="alert">
@@ -24,23 +32,7 @@
             <p th:text="${error}" class="font-medium"></p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-            <!-- Description/Usage info -->
-            <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
-                <h2 class="text-xl font-bold mb-4 text-gray-800">システム概要</h2>
-                <p class="text-gray-600 text-sm leading-relaxed mb-4">
-                    製造現場やメンテナンス業務における部品の「発注・受入・在庫管理・廃棄」までのライフサイクルを一元管理します。
-                </p>
-                <ul class="list-disc list-inside space-y-2 text-sm text-gray-700">
-                    <li><span class="font-bold">発注 (Order):</span> 在庫不足時の補充申請</li>
-                    <li><span class="font-bold">入庫 (Receive):</span> 납품 후의 검수 및 재고 반영</li>
-                    <li><span class="font-bold">廃棄 (Dispose):</span> 不良品の廃棄承認プロセス</li>
-                </ul>
-            </div>
-        </div>
-
-        <h2 class="text-2xl font-bold mb-4 text-gray-800">📦 在庫及び管理リスト</h2>
-        <div class="overflow-x-auto bg-white rounded-lg border border-gray-200">
+        <div class="overflow-x-auto bg-white rounded-lg border border-gray-200 shadow-sm">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
@@ -54,43 +46,242 @@
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                     <tr th:each="part : ${parts}" class="hover:bg-gray-50 transition duration-150 ease-in-out">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" th:text="${part.productCode}"></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900" th:text="${part.productCode}"></td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700" th:text="${part.name}"></td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <span th:text="${part.stockQuantity}" th:class="${part.stockQuantity < 10 ? 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800' : 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800'}">
-                            </span>
+                            <span th:text="${part.stockQuantity}" th:class="${part.stockQuantity < 10 ? 'px-2 inline-flex text-xs leading-5 font-bold rounded-full bg-red-100 text-red-800' : 'px-2 inline-flex text-xs leading-5 font-bold rounded-full bg-green-100 text-green-800'}"></span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <span th:text="${part.incomingQuantity}" th:class="${part.incomingQuantity > 0 ? 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800' : 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800'}"></span>
+                            <span th:text="${part.incomingQuantity}" th:class="${part.incomingQuantity > 0 ? 'px-2 inline-flex text-xs leading-5 font-bold rounded-full bg-blue-100 text-blue-800' : 'px-2 inline-flex text-xs leading-5 font-bold rounded-full bg-gray-100 text-gray-800'}"></span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" th:text="${#temporals.format(part.updatedAt, 'yyyy-MM-dd HH:mm')}"></td>
                         <td class="px-6 py-4 whitespace-nowrap font-medium text-center space-x-2">
-                            <form th:action="@{/parts/{code}/order(code=${part.productCode})}" method="post" class="inline-flex items-center space-x-1">
-                                <input type="number" name="quantity" value="1" min="1" class="w-12 h-6 text-sm border border-gray-300 rounded text-center bg-white">
-                                <span class="text-xs text-gray-500 font-semibold" th:text="'(単位: ' + ${part.orderUnit} + ')'"></span>
-                                <input type="hidden" name="remarks" value="정기 발주">
-                                <button type="submit" class="text-blue-600 hover:text-blue-900 bg-blue-50 px-2 py-1 ml-1 rounded border border-blue-200 hover:bg-blue-100 transition text-sm">再注文</button>
-                            </form>
+                            <!-- Detail Button -->
+                            <button type="button" th:onclick="'openDetailModal(\'' + ${part.productCode} + '\')'" class="text-gray-600 hover:text-gray-900 bg-gray-50 border border-gray-200 px-3 py-1 rounded transition text-sm">詳細</button>
+                            
+                            <!-- Inline Auto-fill Order Button -->
+                            <button type="button" th:onclick="'openOrderModal(\'' + ${part.productCode} + '\')'" class="text-blue-600 hover:text-blue-900 bg-blue-50 border border-blue-200 px-3 py-1 rounded transition text-sm">再注文</button>
+
                             <form th:action="@{/parts/{code}/receive(code=${part.productCode})}" method="post" class="inline" th:if="${part.incomingQuantity > 0}">
                                 <input type="hidden" name="quantity" th:value="${part.incomingQuantity}">
                                 <input type="hidden" name="remarks" value="입하 대기물량 입고">
-                                <button type="submit" class="text-green-600 hover:text-green-900 bg-green-50 px-3 py-1 rounded border border-green-200 hover:bg-green-100 transition" th:text="'入庫(+' + ${part.incomingQuantity} + ')'">入庫</button>
+                                <button type="submit" class="text-green-600 hover:text-green-900 bg-green-50 px-3 py-1 rounded border border-green-200 hover:bg-green-100 transition text-sm" th:text="'入庫(+' + ${part.incomingQuantity} + ')'">入庫</button>
                             </form>
                             <form th:action="@{/parts/{code}/dispose(code=${part.productCode})}" method="post" class="inline">
                                 <input type="hidden" name="quantity" value="1">
                                 <input type="hidden" name="remarks" value="불량 폐기">
-                                <button type="submit" class="text-red-600 hover:text-red-900 bg-red-50 px-3 py-1 rounded border border-red-200 hover:bg-red-100 transition" th:disabled="${part.stockQuantity < 1}" th:classappend="${part.stockQuantity < 1 ? 'opacity-50 cursor-not-allowed' : ''}">廃棄(-1)</button>
+                                <button type="submit" class="text-red-600 hover:text-red-900 bg-red-50 px-3 py-1 rounded border border-red-200 hover:bg-red-100 transition text-sm" th:disabled="${part.stockQuantity < 1}" th:classappend="${part.stockQuantity < 1 ? 'opacity-50 cursor-not-allowed' : ''}">廃棄(-1)</button>
                             </form>
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(parts)}">
-                        <td colspan="6" class="px-6 py-8 text-center text-gray-500">
-                            登録された部品がありません。上のフォームから新規登録してください。
+                        <td colspan="6" class="px-6 py-12 text-center text-gray-500 text-lg border-dashed border-2 border-gray-200 rounded">
+                            実在庫・入荷予定の部品がありません。<br>
+                            <span class="text-sm mt-2 block">上の「発注」ボタンから新規注文を行ってください。</span>
                         </td>
                     </tr>
                 </tbody>
             </table>
         </div>
     </div>
+
+    <!-- Modals Background -->
+    <div id="modalOverlay" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-40 hidden transition-opacity" onclick="closeAllModals()"></div>
+
+    <!-- Unified Order Modal -->
+    <div id="orderModal" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-xl shadow-2xl z-50 hidden" role="dialog">
+        <div class="flex justify-between items-center border-b p-5 bg-blue-50/50 rounded-t-xl">
+            <h2 class="text-xl font-bold text-blue-800">🛒 部品発注 (Order)</h2>
+            <button onclick="closeAllModals()" class="text-gray-400 hover:text-gray-600 transition">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <div class="p-6">
+            <form id="orderForm" method="post" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">対象部品 (部品マスター)</label>
+                    <select id="orderProductSelect" onchange="updateOrderPreview()" class="block w-full border border-gray-300 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                        <option value="" disabled selected>選択してください...</option>
+                        <option th:each="m : ${allMasterParts}" 
+                                th:value="${m.productCode}" 
+                                th:text="${m.productCode + ' - ' + m.name}"></option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">発注回数 (Multiplier)</label>
+                        <input type="number" id="orderQuantity" name="quantity" value="1" min="1" oninput="updateOrderPreview()" class="block w-full rounded-lg border-gray-300 shadow-sm p-2.5 border focus:ring-blue-500 focus:border-blue-500">
+                        <input type="hidden" name="remarks" id="orderRemarks" value="UI発注">
+                    </div>
+                    <div class="bg-gray-50 border rounded-lg p-3 flex flex-col justify-center items-center">
+                        <p class="text-xs text-gray-500 font-bold mb-1">マスター単位設定</p>
+                        <p class="text-sm font-semibold text-gray-800"><span id="previewUnit">1</span>個/注文</p>
+                    </div>
+                </div>
+
+                <div class="border-t border-dashed my-4"></div>
+
+                <!-- Preview Area -->
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-lg p-5 shadow-inner">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-bold text-gray-600">予想総額 (Total Amount):</span>
+                        <span class="text-2xl font-extrabold text-blue-700" id="previewTotalPrice">0</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-bold text-gray-600">入庫予定日 (Expected Date):</span>
+                        <span class="text-lg font-bold text-green-700" id="previewArrivalDate">-</span>
+                    </div>
+                    <p class="text-xs text-right text-gray-400 mt-1">※入荷リードタイム: <span id="previewLeadTime">0</span>日</p>
+                </div>
+
+                <div class="mt-6 flex justify-end space-x-3">
+                    <button type="button" onclick="closeAllModals()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition font-bold">キャンセル</button>
+                    <button type="submit" id="submitOrderBtn" disabled class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition font-bold disabled:opacity-50 disabled:cursor-not-allowed">注文確定</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Hidden Detail Modals (Pre-rendered for each inventory part) -->
+    <div th:each="part : ${parts}" th:id="'detailModal-' + ${part.productCode}" class="detail-modal fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-xl shadow-2xl z-50 hidden" role="dialog">
+        <div class="flex justify-between items-center border-b p-5 bg-gray-50 rounded-t-xl">
+            <h2 class="text-xl font-bold text-gray-800" th:text="'🔍 在庫詳細: ' + ${part.productCode}"></h2>
+            <button onclick="closeAllModals()" class="text-gray-400 hover:text-gray-600 transition">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="bg-green-50 border border-green-100 p-4 rounded-lg text-center">
+                    <p class="text-xs font-bold text-gray-500 uppercase">実在庫数 (Stock)</p>
+                    <p class="text-3xl font-extrabold text-green-700 mt-1" th:text="${part.stockQuantity}"></p>
+                </div>
+                <div class="bg-blue-50 border border-blue-100 p-4 rounded-lg text-center">
+                    <p class="text-xs font-bold text-gray-500 uppercase">入荷予定総数 (Incoming)</p>
+                    <p class="text-3xl font-extrabold text-blue-700 mt-1" th:text="${part.incomingQuantity}"></p>
+                </div>
+            </div>
+
+            <h3 class="font-bold text-gray-700 mb-3 border-b pb-2">🚚 入荷予定リスト (Pending Orders)</h3>
+            <div class="max-h-48 overflow-y-auto">
+                <div th:if="${pendingOrdersMap.containsKey(part.productCode)}">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+                            <tr>
+                                <th class="px-4 py-2 border-b">注文日時</th>
+                                <th class="px-4 py-2 border-b">予定数量</th>
+                                <th class="px-4 py-2 border-b">入庫予定日</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="tx : ${pendingOrdersMap.get(part.productCode)}" class="border-b">
+                                <td class="px-4 py-3" th:text="${#temporals.format(tx.transactionDate, 'MM-dd HH:mm')}"></td>
+                                <td class="px-4 py-3 font-bold text-blue-600" th:text="'+' + ${tx.quantity}"></td>
+                                <td class="px-4 py-3 font-bold text-gray-800">
+                                    <span th:if="${tx.expectedArrivalDate != null}" th:text="${#temporals.format(tx.expectedArrivalDate, 'yyyy-MM-dd')}"></span>
+                                    <span th:unless="${tx.expectedArrivalDate != null}" class="text-gray-400">未定</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div th:unless="${pendingOrdersMap.containsKey(part.productCode)}" class="text-center py-6 text-gray-400 text-sm">
+                    現在、入荷待ちの注文はありません。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS Master Data Payload -->
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const masterData = {};
+        /*[# th:each="m : ${allMasterParts}"]*/
+        masterData['[[${m.productCode}]]'] = {
+            price: [[${m.price}]],
+            orderUnit: [[${m.orderUnit}]],
+            leadTimeDays: [[${m.leadTimeDays}]]
+        };
+        /*[/]*/
+        /*]]>*/
+
+        const modalOverlay = document.getElementById('modalOverlay');
+        const orderModal = document.getElementById('orderModal');
+        
+        const ptSelect = document.getElementById('orderProductSelect');
+        const qtyInput = document.getElementById('orderQuantity');
+        const prevUnit = document.getElementById('previewUnit');
+        const prevPrice = document.getElementById('previewTotalPrice');
+        const prevDate = document.getElementById('previewArrivalDate');
+        const prevLead = document.getElementById('previewLeadTime');
+        const submitBtn = document.getElementById('submitOrderBtn');
+        const orderForm = document.getElementById('orderForm');
+
+        function closeAllModals() {
+            modalOverlay.classList.add('hidden');
+            orderModal.classList.add('hidden');
+            document.querySelectorAll('.detail-modal').forEach(m => m.classList.add('hidden'));
+        }
+
+        function openDetailModal(code) {
+            const modal = document.getElementById('detailModal-' + code);
+            if(modal) {
+                modalOverlay.classList.remove('hidden');
+                modal.classList.remove('hidden');
+            }
+        }
+
+        function openOrderModal(selectCode) {
+            // Reset or Set select
+            if (selectCode) {
+                ptSelect.value = selectCode;
+            } else {
+                ptSelect.value = "";
+            }
+            qtyInput.value = 1;
+            updateOrderPreview();
+
+            modalOverlay.classList.remove('hidden');
+            orderModal.classList.remove('hidden');
+        }
+
+        function updateOrderPreview() {
+            const code = ptSelect.value;
+            
+            if (!code || !masterData[code]) {
+                prevUnit.textContent = "0";
+                prevPrice.textContent = "0";
+                prevDate.textContent = "-";
+                prevLead.textContent = "0";
+                submitBtn.disabled = true;
+                return;
+            }
+
+            const data = masterData[code];
+            const q = parseInt(qtyInput.value) || 0;
+
+            // Form Action (Path Variable code)
+            orderForm.action = `/parts/${code}/order`;
+
+            // Calculate
+            const totalQuantity = q * data.orderUnit;
+            const totalPrice = totalQuantity * data.price;
+            
+            // Expected Date
+            const today = new Date();
+            today.setDate(today.getDate() + data.leadTimeDays);
+            const expectedDateString = today.toISOString().split('T')[0];
+
+            // Render
+            prevUnit.textContent = data.orderUnit;
+            // Format number with commas
+            prevPrice.textContent = "₩" + totalPrice.toLocaleString();
+            prevDate.textContent = expectedDateString;
+            prevLead.textContent = data.leadTimeDays;
+
+            submitBtn.disabled = (q <= 0);
+        }
+    </script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 package com.example.plms.domain;
 
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -22,6 +23,8 @@ public class PartTransaction {
     @Column(nullable = false)
     private int quantity;
 
+    private LocalDate expectedArrivalDate;
+
     private LocalDateTime transactionDate;
     private String remarks;
 
@@ -39,6 +42,8 @@ public class PartTransaction {
     public void setStatus(Status status) { this.status = status; }
     public int getQuantity() { return quantity; }
     public void setQuantity(int quantity) { this.quantity = quantity; }
+    public LocalDate getExpectedArrivalDate() { return expectedArrivalDate; }
+    public void setExpectedArrivalDate(LocalDate expectedArrivalDate) { this.expectedArrivalDate = expectedArrivalDate; }
     public LocalDateTime getTransactionDate() { return transactionDate; }
     public String getRemarks() { return remarks; }
     public void setRemarks(String remarks) { this.remarks = remarks; }

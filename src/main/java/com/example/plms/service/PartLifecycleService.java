@@ -35,7 +35,7 @@ public class PartLifecycleService {
     }
     
     // 부품 마스터 업데이트
-    public Part updatePartMaster(String productCode, int price, int orderUnit, int expirationDays) {
+    public Part updatePartMaster(String productCode, int price, int orderUnit, int expirationDays, int leadTimeDays) {
         if (price <= 0) {
             throw new IllegalArgumentException("부품 가격은 0보다 커야 합니다.");
         }
@@ -48,6 +48,7 @@ public class PartLifecycleService {
         part.setPrice(price);
         part.setOrderUnit(orderUnit);
         part.setExpirationDays(expirationDays);
+        part.setLeadTimeDays(leadTimeDays);
         return partRepository.save(part);
     }
     
@@ -60,6 +61,11 @@ public class PartLifecycleService {
     @Transactional(readOnly = true)
     public Optional<Part> getPartByCode(String productCode) {
         return partRepository.findByProductCode(productCode);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PartTransaction> getPendingTransactions() {
+        return transactionRepository.findByStatus(Status.ORDERED);
     }
 
     // 1. 발주 (Order)
@@ -77,6 +83,7 @@ public class PartLifecycleService {
         transaction.setPart(part);
         transaction.setStatus(Status.ORDERED);
         transaction.setQuantity(totalQuantity);
+        transaction.setExpectedArrivalDate(java.time.LocalDate.now().plusDays(part.getLeadTimeDays()));
         transaction.setRemarks(remarks + " (単位: " + part.getOrderUnit() + " x " + quantity + ")");
         
         part.setIncomingQuantity(part.getIncomingQuantity() + totalQuantity);

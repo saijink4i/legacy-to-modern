@@ -1,11 +1,16 @@
 package com.example.plms.controller;
 
 import com.example.plms.domain.Part;
+import com.example.plms.domain.PartTransaction;
 import com.example.plms.service.PartLifecycleService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/")
@@ -19,7 +24,17 @@ public class PartController {
 
     @GetMapping
     public String index(Model model) {
-        model.addAttribute("parts", partService.getAllParts());
+        List<Part> allParts = partService.getAllParts();
+        List<Part> inventoryParts = allParts.stream()
+                .filter(p -> p.getStockQuantity() > 0 || p.getIncomingQuantity() > 0)
+                .collect(Collectors.toList());
+
+        Map<String, List<PartTransaction>> pendingOrdersMap = partService.getPendingTransactions().stream()
+                .collect(Collectors.groupingBy(t -> t.getPart().getProductCode()));
+
+        model.addAttribute("parts", inventoryParts);
+        model.addAttribute("allMasterParts", allParts);
+        model.addAttribute("pendingOrdersMap", pendingOrdersMap);
         return "index";
     }
 
@@ -41,9 +56,9 @@ public class PartController {
     }
 
     @PostMapping("/master/update")
-    public String updateMaster(@RequestParam String productCode, @RequestParam int price, @RequestParam int orderUnit, @RequestParam int expirationDays, RedirectAttributes redirectAttributes) {
+    public String updateMaster(@RequestParam String productCode, @RequestParam int price, @RequestParam int orderUnit, @RequestParam int expirationDays, @RequestParam int leadTimeDays, RedirectAttributes redirectAttributes) {
         try {
-            partService.updatePartMaster(productCode, price, orderUnit, expirationDays);
+            partService.updatePartMaster(productCode, price, orderUnit, expirationDays, leadTimeDays);
             redirectAttributes.addFlashAttribute("message", "부품 마스터(" + productCode + ")가 수정되었습니다.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "마스터 수정 실패: " + e.getMessage());

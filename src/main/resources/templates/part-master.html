@@ -51,6 +51,7 @@
                         <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">価格</th>
                         <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">注文単位(N個)</th>
                         <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">有効(日)</th>
+                        <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">リードタイム(日)</th>
                         <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">編集</th>
                     </tr>
                 </thead>
@@ -63,8 +64,9 @@
                         <td class="px-6 py-4 text-center font-medium text-gray-900" th:text="${part.price}"></td>
                         <td class="px-6 py-4 text-center font-medium text-gray-900" th:text="${part.orderUnit}"></td>
                         <td class="px-6 py-4 text-center font-medium text-gray-900" th:text="${part.expirationDays}"></td>
+                        <td class="px-6 py-4 text-center font-medium text-gray-900" th:text="${part.leadTimeDays}"></td>
                         <td class="px-6 py-4 text-center">
-                            <button th:onclick="openEditModal([[${part.productCode}]], [[${part.name}]], [[${part.price}]], [[${part.orderUnit}]], [[${part.expirationDays}]])" 
+                            <button th:onclick="openEditModal([[${part.productCode}]], [[${part.name}]], [[${part.price}]], [[${part.orderUnit}]], [[${part.expirationDays}]], [[${part.leadTimeDays}]])" 
                                     class="text-blue-600 hover:text-white border border-blue-600 hover:bg-blue-600 px-4 py-1.5 rounded transition text-xs font-bold">
                                 編集
                             </button>
@@ -127,6 +129,10 @@
                         <input type="number" name="expirationDays" value="365" min="0" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border focus:ring-blue-500 focus:border-blue-500">
                     </div>
                 </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700">リードタイム(日)</label>
+                    <input type="number" name="leadTimeDays" value="7" min="0" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border focus:ring-blue-500 focus:border-blue-500">
+                </div>
                 <div class="mt-6 flex justify-end space-x-3">
                     <button type="button" onclick="closeModals()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">キャンセル</button>
                     <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition">登録する</button>
@@ -166,6 +172,10 @@
                         <label class="block text-sm font-semibold text-gray-700">有効期間(日)</label>
                         <input type="number" id="editExpirationDays" name="expirationDays" required min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border focus:ring-blue-500 focus:border-blue-500">
                     </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700">リードタイム(日)</label>
+                    <input type="number" id="editLeadTimeDays" name="leadTimeDays" required min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border focus:ring-blue-500 focus:border-blue-500">
                 </div>
                 <div class="mt-6 flex justify-end space-x-3">
                     <button type="button" onclick="closeModals()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">キャンセル</button>
@@ -216,13 +226,14 @@
             addModal.classList.remove('hidden');
         }
 
-        function openEditModal(code, name, price, orderUnit, expirationDays) {
+        function openEditModal(code, name, price, orderUnit, expirationDays, leadTimeDays) {
             document.getElementById('editProductCode').value = code;
             document.getElementById('displayProductCode').textContent = code;
             document.getElementById('displayProductName').textContent = name;
             document.getElementById('editPrice').value = price;
             document.getElementById('editOrderUnit').value = orderUnit;
             document.getElementById('editExpirationDays').value = expirationDays;
+            document.getElementById('editLeadTimeDays').value = leadTimeDays;
             
             modalOverlay.classList.remove('hidden');
             editModal.classList.remove('hidden');

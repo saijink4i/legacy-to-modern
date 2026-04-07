@@ -32,6 +32,9 @@ public class Part {
     @Column(nullable = false, columnDefinition = "integer default 0")
     private int expirationDays = 0;
 
+    @Column(nullable = false, columnDefinition = "integer default 0")
+    private int leadTimeDays = 0;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -66,6 +69,8 @@ public class Part {
     public void setOrderUnit(int orderUnit) { this.orderUnit = orderUnit; }
     public int getExpirationDays() { return expirationDays; }
     public void setExpirationDays(int expirationDays) { this.expirationDays = expirationDays; }
+    public int getLeadTimeDays() { return leadTimeDays; }
+    public void setLeadTimeDays(int leadTimeDays) { this.leadTimeDays = leadTimeDays; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 }
