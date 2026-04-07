@@ -98,14 +98,33 @@
         </div>
         <div class="p-6">
             <form id="orderForm" method="post" class="space-y-5">
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">対象部品 (部品マスター)</label>
-                    <select id="orderProductSelect" onchange="updateOrderPreview()" class="block w-full border border-gray-300 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
-                        <option value="" disabled selected>選択してください...</option>
-                        <option th:each="m : ${allMasterParts}" 
-                                th:value="${m.productCode}" 
-                                th:text="${m.productCode + ' - ' + m.name}"></option>
-                    </select>
+                <div class="relative">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">対象部品検索 (Search Part)</label>
+                    <input type="text" id="partSearchInput" placeholder="部品名またはコードを入力..." autocomplete="off" oninput="filterPartList()" onclick="togglePartList(true)" class="block w-full border border-gray-300 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm">
+                    <input type="hidden" id="selectedPartCode" name="productCode" required>
+                    <input type="hidden" id="activePartPrice" value="0">
+                    <input type="hidden" id="activePartUnit" value="0">
+                    <input type="hidden" id="activePartLeadTime" value="0">
+                    
+                    <ul id="partDropdownList" class="absolute z-10 w-full mt-1 bg-white shadow-xl border border-gray-200 rounded-md max-h-56 overflow-y-auto hidden">
+                        <li th:each="m : ${allMasterParts}" 
+                            class="part-item cursor-pointer px-4 py-2.5 hover:bg-blue-50 border-b border-gray-50 last:border-b-0 transition"
+                            th:data-code="${m.productCode}"
+                            th:data-name="${m.name}"
+                            th:data-price="${m.price}"
+                            th:data-unit="${m.orderUnit}"
+                            th:data-lead="${m.leadTimeDays}"
+                            onclick="selectPart(this)">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <span class="font-bold text-gray-800" th:text="${m.productCode}"></span>
+                                    <span class="text-sm font-medium text-gray-500 ml-2" th:text="${m.name}"></span>
+                                </div>
+                                <span class="text-xs text-gray-400" th:text="'在庫: ' + ${m.stockQuantity}"></span>
+                            </div>
+                        </li>
+                        <li id="noPartFound" class="px-4 py-4 text-center text-gray-500 hidden text-sm font-medium">検索結果がありません</li>
+                    </ul>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
@@ -195,21 +214,14 @@
 
     <!-- JS Master Data Payload -->
     <script th:inline="javascript">
-        /*<![CDATA[*/
-        const masterData = {};
-        /*[# th:each="m : ${allMasterParts}"]*/
-        masterData['[[${m.productCode}]]'] = {
-            price: [[${m.price}]],
-            orderUnit: [[${m.orderUnit}]],
-            leadTimeDays: [[${m.leadTimeDays}]]
-        };
-        /*[/]*/
-        /*]]>*/
+        const ptInput = document.getElementById('partSearchInput');
+        const ptCodeHidden = document.getElementById('selectedPartCode');
+        const ptDropdown = document.getElementById('partDropdownList');
+        const items = document.querySelectorAll('.part-item');
+        const pPrice = document.getElementById('activePartPrice');
+        const pUnit = document.getElementById('activePartUnit');
+        const pLead = document.getElementById('activePartLeadTime');
 
-        const modalOverlay = document.getElementById('modalOverlay');
-        const orderModal = document.getElementById('orderModal');
-        
-        const ptSelect = document.getElementById('orderProductSelect');
         const qtyInput = document.getElementById('orderQuantity');
         const prevUnit = document.getElementById('previewUnit');
         const prevPrice = document.getElementById('previewTotalPrice');
@@ -218,10 +230,52 @@
         const submitBtn = document.getElementById('submitOrderBtn');
         const orderForm = document.getElementById('orderForm');
 
+        document.addEventListener('click', function(e) {
+            if (!ptInput.contains(e.target) && !ptDropdown.contains(e.target)) {
+                togglePartList(false);
+            }
+        });
+
+        function togglePartList(show) {
+            if(show) {
+                ptDropdown.classList.remove('hidden');
+                filterPartList();
+            } else {
+                ptDropdown.classList.add('hidden');
+            }
+        }
+
+        function filterPartList() {
+            const filter = ptInput.value.toLowerCase();
+            let found = false;
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                const isMatch = text.includes(filter);
+                item.style.display = isMatch ? 'block' : 'none';
+                if(isMatch) found = true;
+            });
+            document.getElementById('noPartFound').style.display = found ? 'none' : 'block';
+        }
+
+        function selectPart(element) {
+            const code = element.getAttribute('data-code');
+            const name = element.getAttribute('data-name');
+            ptInput.value = code + ' - ' + name;
+            ptCodeHidden.value = code;
+            
+            pPrice.value = element.getAttribute('data-price');
+            pUnit.value = element.getAttribute('data-unit');
+            pLead.value = element.getAttribute('data-lead');
+
+            togglePartList(false);
+            updateOrderPreview();
+        }
+
         function closeAllModals() {
             modalOverlay.classList.add('hidden');
             orderModal.classList.add('hidden');
             document.querySelectorAll('.detail-modal').forEach(m => m.classList.add('hidden'));
+            togglePartList(false);
         }
 
         function openDetailModal(code) {
@@ -233,23 +287,33 @@
         }
 
         function openOrderModal(selectCode) {
-            // Reset or Set select
-            if (selectCode) {
-                ptSelect.value = selectCode;
-            } else {
-                ptSelect.value = "";
-            }
+            ptCodeHidden.value = "";
+            ptInput.value = "";
+            pPrice.value = 0;
+            pUnit.value = 0;
+            pLead.value = 0;
             qtyInput.value = 1;
-            updateOrderPreview();
+            
+            if (selectCode) {
+                items.forEach(item => {
+                    if(item.getAttribute('data-code') === selectCode) selectPart(item);
+                });
+            } else {
+                updateOrderPreview();
+            }
 
             modalOverlay.classList.remove('hidden');
             orderModal.classList.remove('hidden');
         }
 
         function updateOrderPreview() {
-            const code = ptSelect.value;
+            const code = ptCodeHidden.value;
+            const q = parseInt(qtyInput.value) || 0;
+            const price = parseInt(pPrice.value) || 0;
+            const unit = parseInt(pUnit.value) || 0;
+            const lead = parseInt(pLead.value) || 0;
             
-            if (!code || !masterData[code]) {
+            if (!code || unit === 0) {
                 prevUnit.textContent = "0";
                 prevPrice.textContent = "0";
                 prevDate.textContent = "-";
@@ -258,27 +322,18 @@
                 return;
             }
 
-            const data = masterData[code];
-            const q = parseInt(qtyInput.value) || 0;
-
-            // Form Action (Path Variable code)
             orderForm.action = `/parts/${code}/order`;
-
-            // Calculate
-            const totalQuantity = q * data.orderUnit;
-            const totalPrice = totalQuantity * data.price;
+            const totalQuantity = q * unit;
+            const totalPrice = totalQuantity * price;
             
-            // Expected Date
             const today = new Date();
-            today.setDate(today.getDate() + data.leadTimeDays);
+            today.setDate(today.getDate() + lead);
             const expectedDateString = today.toISOString().split('T')[0];
 
-            // Render
-            prevUnit.textContent = data.orderUnit;
-            // Format number with commas
+            prevUnit.textContent = unit;
             prevPrice.textContent = "₩" + totalPrice.toLocaleString();
             prevDate.textContent = expectedDateString;
-            prevLead.textContent = data.leadTimeDays;
+            prevLead.textContent = lead;
 
             submitBtn.disabled = (q <= 0);
         }
