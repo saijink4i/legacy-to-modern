@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLMS - 廃棄処理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen">
+    
+    <!-- Render Global Navbar -->
+    <div th:replace="~{fragments/nav :: navbar}"></div>
+
+    <div class="max-w-3xl mx-auto py-10 px-4">
+        <div class="bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden">
+            <div class="bg-red-600 text-white p-6 relative">
+                <div class="absolute right-6 top-6 opacity-20">
+                    <svg class="w-16 h-16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                </div>
+                <h1 class="text-2xl font-extrabold tracking-wider">🗑️ 廃棄処理 (Dispose)</h1>
+                <p class="text-red-100 mt-2 text-sm z-10 relative">不良品の識別や期限満了等で、実在庫から部品を削除(廃棄)します。</p>
+            </div>
+            
+            <div class="p-8">
+                <!-- Alerts -->
+                <div th:if="${message}" class="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 mb-6 shadow-sm" role="alert">
+                    <p th:text="${message}" class="font-bold"></p>
+                </div>
+                <div th:if="${error}" class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 shadow-sm" role="alert">
+                    <p th:text="${error}" class="font-bold"></p>
+                </div>
+
+                <form id="disposeForm" method="post" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">廃棄対象の部品(在庫1以上のみ表示)</label>
+                        <select name="partCodeSelect" id="partCodeSelect" onchange="updateMaxQuantity()" required class="block w-full border border-gray-300 rounded-lg p-3 focus:ring-red-500 focus:border-red-500 bg-white shadow-sm font-bold text-gray-900">
+                            <option value="" disabled selected>-- 部品を選択してください --</option>
+                            <option th:each="inv : ${inventories}" 
+                                    th:value="${inv.part.productCode}" 
+                                    th:data-max="${inv.currentStock}"
+                                    th:text="${inv.part.productCode} + ' - ' + ${inv.part.name} + ' (現在庫: ' + ${inv.currentStock} + ')'"></option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">廃棄数量</label>
+                            <div class="relative">
+                                <input type="number" id="disposeQuantity" name="quantity" value="1" min="1" max="1" class="block w-full rounded-lg border-gray-300 shadow-sm p-3 border focus:ring-red-500 focus:border-red-500 font-bold text-xl text-red-600">
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500 text-sm font-bold" id="maxQuantityLabel">/ 最大 0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-2">廃棄事由 (Reason)</label>
+                            <select name="remarks" class="block w-full border border-gray-300 rounded-lg p-3 bg-white shadow-sm text-gray-700">
+                                <option value="UI 불량 폐기 요청됨">不良品による廃棄</option>
+                                <option value="유효기간 만료">有効期限満了</option>
+                                <option value="분실/손상">紛失・損傷確認</option>
+                                <option value="기타 사유">その他</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 pt-6 border-t flex justify-end">
+                        <button type="submit" id="submitDisposeBtn" disabled class="px-8 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 shadow-lg transition font-extrabold text-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                            実行
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS Logic -->
+    <script>
+        const selectBox = document.getElementById('partCodeSelect');
+        const qtyInput = document.getElementById('disposeQuantity');
+        const form = document.getElementById('disposeForm');
+        const maxLabel = document.getElementById('maxQuantityLabel');
+        const submitBtn = document.getElementById('submitDisposeBtn');
+
+        function updateMaxQuantity() {
+            const option = selectBox.options[selectBox.selectedIndex];
+            if (!option.value) {
+                submitBtn.disabled = true;
+                return;
+            }
+            
+            const maxStock = option.getAttribute('data-max');
+            qtyInput.max = maxStock;
+            maxLabel.textContent = '/ 最大 ' + maxStock;
+            form.action = `/parts/${option.value}/dispose`;
+            
+            submitBtn.disabled = false;
+        }
+    </script>
+</body>
+</html>

@@ -8,11 +8,10 @@
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans p-8">
     <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-lg border border-gray-100 p-8">
-        
-        <nav class="bg-white shadow-sm border border-gray-100 mb-8 flex space-x-6 px-6 py-4 rounded-xl">
-            <a href="/" class="text-gray-500 hover:text-blue-700 font-medium pb-1 transition">📦 在庫管理 (Inventory)</a>
-            <a href="/master" class="text-blue-700 font-bold border-b-2 border-blue-700 pb-1">⚙️ 部品マスター (Part Master)</a>
-        </nav>
+    <!-- Render Global Navbar -->
+    <div th:replace="~{fragments/nav :: navbar}"></div>
+
+    <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-lg border border-gray-100 p-8 mt-8">
 
         <h1 class="text-3xl font-extrabold mb-8 text-blue-700">⚙️部品マスターデータ更新</h1>
         

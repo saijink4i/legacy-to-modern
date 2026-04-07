@@ -23,13 +23,11 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800 font-sans min-h-screen flex items-center justify-center p-6">
-    <div class="max-w-2xl w-full">
-        <!-- Navigation Link -->
-        <a href="/" class="inline-flex items-center text-sm font-bold text-gray-500 hover:text-blue-600 mb-6 transition">
-            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-            在庫管理(Inventory)へ戻る
-        </a>
+<body class="bg-gray-100 text-gray-800 font-sans min-h-screen">
+    <!-- Render Global Navbar -->
+    <div th:replace="~{fragments/nav :: navbar}"></div>
+
+    <div class="max-w-2xl w-full mx-auto mt-12">
 
         <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 relative">
             <div class="bg-indigo-600 text-white p-6 text-center">

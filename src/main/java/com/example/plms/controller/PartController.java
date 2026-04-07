@@ -24,9 +24,15 @@ public class PartController {
         this.partService = partService;
     }
 
-    // 1. Inventory View (Dashboard)
+    // 0. Landing Page (Portal View)
     @GetMapping("/")
-    public String index(Model model) {
+    public String index() {
+        return "landing";
+    }
+
+    // 1. Inventory View
+    @GetMapping("/inventory")
+    public String inventory(Model model) {
         List<Inventory> inventories = partService.getAllInventories();
         
         // Hide items with 0 stock and 0 pending orders
@@ -39,9 +45,8 @@ public class PartController {
                 .collect(Collectors.groupingBy(t -> t.getPart().getProductCode()));
 
         model.addAttribute("inventories", activeInventories);
-        model.addAttribute("allMasterParts", partService.getAllParts());
         model.addAttribute("pendingOrdersMap", pendingOrdersMap);
-        return "index";
+        return "inventory";
     }
 
     // 2. Barcode Receive Page
@@ -55,9 +60,9 @@ public class PartController {
     public String processReceive(@RequestParam String orderNumber, RedirectAttributes redirectAttributes) {
         try {
             partService.receiveOrder(orderNumber.trim());
-            redirectAttributes.addFlashAttribute("message", "주문번호 [" + orderNumber + "] 의 입고 처리가 성공적으로 완료되었습니다.");
+            redirectAttributes.addFlashAttribute("message", "注文No [" + orderNumber + "] の入庫処理が成功的に完了されました。");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "입하 실패: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "入庫失敗: " + e.getMessage());
         }
         return "redirect:/receive";
     }
@@ -73,9 +78,9 @@ public class PartController {
     public String registerMaster(@ModelAttribute Part part, RedirectAttributes redirectAttributes) {
         try {
             partService.registerPart(part);
-            redirectAttributes.addFlashAttribute("message", "부품 마스터(" + part.getProductCode() + ")가 신규 등록되었습니다. 기초 재고 0개가 자동 할당됩니다.");
+            redirectAttributes.addFlashAttribute("message", "部品マスタ(" + part.getProductCode() + ")が新規登録されました。基礎在庫0個が自動割当されます。");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "마스터 등록 실패: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "部品マスタ登録失敗: " + e.getMessage());
         }
         return "redirect:/master";
     }
@@ -84,26 +89,41 @@ public class PartController {
     public String updateMaster(@RequestParam String productCode, @RequestParam int price, @RequestParam int orderUnit, @RequestParam String expirationDate, @RequestParam int leadTimeDays, RedirectAttributes redirectAttributes) {
         try {
             partService.updatePartMaster(productCode, price, orderUnit, expirationDate, leadTimeDays);
-            redirectAttributes.addFlashAttribute("message", "부품 마스터(" + productCode + ")가 수정되었습니다.");
+            redirectAttributes.addFlashAttribute("message", "部品マスタ(" + productCode + ")が修正されました。");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "마스터 수정 실패: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "部品マスタ修正失敗: " + e.getMessage());
         }
         return "redirect:/master";
     }
 
-    // 4. Order API
+    // 4. Order UI & API
+    @GetMapping("/order")
+    public String orderPage(Model model) {
+        model.addAttribute("allMasterParts", partService.getAllParts());
+        return "order";
+    }
+
     @PostMapping("/parts/{code}/order")
     public String orderPart(@PathVariable String code, @RequestParam int quantity, @RequestParam(required = false) String remarks, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate expectedArrivalDate, RedirectAttributes redirectAttributes) {
         try {
             PurchaseOrder order = partService.orderPart(code, quantity, remarks, expectedArrivalDate);
-            redirectAttributes.addFlashAttribute("message", "부품 발주가 성공적으로 접수되었습니다. (주문 번호: " + order.getOrderNumber() + ")");
+            redirectAttributes.addFlashAttribute("message", "部品発注が成功的に登録されました。(発注No: " + order.getOrderNumber() + ")");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "발주 실패: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("error", "発注失敗: " + e.getMessage());
         }
         return "redirect:/";
     }
 
-    // 5. Dispose API
+    // 5. Dispose UI & API
+    @GetMapping("/dispose")
+    public String disposePage(Model model) {
+        List<Inventory> activeInventories = partService.getAllInventories().stream()
+                .filter(inv -> inv.getCurrentStock() > 0)
+                .collect(Collectors.toList());
+        model.addAttribute("inventories", activeInventories);
+        return "dispose";
+    }
+
     @PostMapping("/parts/{code}/dispose")
     public String disposePart(@PathVariable String code, @RequestParam int quantity, @RequestParam(required = false) String remarks, RedirectAttributes redirectAttributes) {
         try {

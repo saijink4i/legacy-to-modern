@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLMS - 在庫確認</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen">
+    
+    <!-- Render Global Navbar -->
+    <div th:replace="~{fragments/nav :: navbar}"></div>
+
+    <div class="max-w-6xl mx-auto py-8 px-4">
+        <h1 class="text-3xl font-extrabold mb-8 text-blue-700">📦 実在庫・管理リスト</h1>
+        
+        <!-- Alerts -->
+        <div th:if="${message}" class="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-r-md shadow-sm" role="alert">
+            <p th:text="${message}" class="font-medium"></p>
+        </div>
+        <div th:if="${error}" class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-r-md shadow-sm" role="alert">
+            <p th:text="${error}" class="font-medium"></p>
+        </div>
+
+        <div class="overflow-x-auto bg-white rounded-lg border border-gray-200 shadow-sm">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">部品コード</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">部品名</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">在庫数</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">発注(入荷予定)量</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">最新更新日</th>
+                        <th class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">アクション</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    <tr th:each="inv : ${inventories}" class="hover:bg-gray-50 transition duration-150 ease-in-out">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900" th:text="${inv.part.productCode}"></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700" th:text="${inv.part.name}"></td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span th:text="${inv.currentStock}" th:class="${inv.currentStock < 10 ? 'px-2 inline-flex text-xs leading-5 font-bold rounded-full bg-red-100 text-red-800' : 'px-2 inline-flex text-xs leading-5 font-bold rounded-full bg-green-100 text-green-800'}"></span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span th:text="${inv.pendingIncoming}" th:class="${inv.pendingIncoming > 0 ? 'px-2 inline-flex text-xs leading-5 font-bold rounded-full bg-blue-100 text-blue-800' : 'px-2 inline-flex text-xs leading-5 font-bold rounded-full bg-gray-100 text-gray-800'}"></span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" th:text="${#temporals.format(inv.updatedAt, 'MM-dd HH:mm')}"></td>
+                        <td class="px-6 py-4 whitespace-nowrap font-medium text-center space-x-2">
+                            <!-- Detail Button -->
+                            <button type="button" th:data-code="${inv.part.productCode}" onclick="openDetailModal(this.getAttribute('data-code'))" class="text-gray-600 hover:text-gray-900 bg-gray-50 border border-gray-200 px-3 py-1 rounded transition text-sm">詳細(入庫予定)</button>
+                            
+                            <!-- Smart route to standalone Order page -->
+                            <a th:href="@{/order(preCode=${inv.part.productCode})}" class="text-blue-600 hover:text-blue-900 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded transition text-sm inline-block">再注文</a>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(inventories)}">
+                        <td colspan="6" class="px-6 py-12 text-center text-gray-500 text-lg border-dashed border-2 border-gray-200 rounded">
+                            実在庫・入荷予定の部品がありません。<br>
+                            <span class="text-sm mt-2 block bg-gray-100 inline-block px-3 py-1 rounded mt-4">在庫数がゼロ、かつ入荷予定がない部品は非表示になります。</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modals Background -->
+    <div id="modalOverlay" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-40 hidden transition-opacity" onclick="closeAllModals()"></div>
+
+    <!-- Hidden Detail Modals (Pre-rendered for each inventory part) -->
+    <div th:each="inv : ${inventories}" th:id="'detailModal-' + ${inv.part.productCode}" class="detail-modal fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-xl bg-white rounded-xl shadow-2xl z-50 hidden" role="dialog">
+        <div class="flex justify-between items-center border-b p-5 bg-gray-50 rounded-t-xl">
+            <h2 class="text-xl font-bold text-gray-800" th:text="'🔍 在庫詳細: ' + ${inv.part.productCode}"></h2>
+            <button onclick="closeAllModals()" class="text-gray-400 hover:text-gray-600 transition">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <div class="p-6">
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="bg-green-50 border border-green-100 p-4 rounded-lg text-center">
+                    <p class="text-xs font-bold text-gray-500 uppercase">実在庫数 (Stock)</p>
+                    <p class="text-3xl font-extrabold text-green-700 mt-1" th:text="${inv.currentStock}"></p>
+                </div>
+                <div class="bg-blue-50 border border-blue-100 p-4 rounded-lg text-center">
+                    <p class="text-xs font-bold text-gray-500 uppercase">発注(入荷予定)総数</p>
+                    <p class="text-3xl font-extrabold text-blue-700 mt-1" th:text="${inv.pendingIncoming}"></p>
+                </div>
+            </div>
+
+            <h3 class="font-bold text-gray-700 mb-3 border-b pb-2">🚚 入荷待ち注文リスト (Pending Orders)</h3>
+            <div class="max-h-56 overflow-y-auto">
+                <div th:if="${pendingOrdersMap.containsKey(inv.part.productCode)}">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+                            <tr>
+                                <th class="px-4 py-2 border-b">注文番号(Barcode)</th>
+                                <th class="px-4 py-2 border-b">注文日時</th>
+                                <th class="px-4 py-2 border-b">予定数量</th>
+                                <th class="px-4 py-2 border-b">入庫予定日</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="tx : ${pendingOrdersMap.get(inv.part.productCode)}" class="border-b">
+                                <td class="px-4 py-3 font-mono font-bold text-purple-700 bg-purple-50 rounded" th:text="${tx.orderNumber}"></td>
+                                <td class="px-4 py-3 text-xs text-gray-600" th:text="${#temporals.format(tx.orderDate, 'MM-dd HH:mm')}"></td>
+                                <td class="px-4 py-3 font-bold text-blue-600" th:text="'+' + ${tx.quantity}"></td>
+                                <td class="px-4 py-3 font-bold text-gray-800">
+                                    <span th:if="${tx.expectedArrivalDate != null}" th:text="${#temporals.format(tx.expectedArrivalDate, 'yyyy-MM-dd')}"></span>
+                                    <span th:unless="${tx.expectedArrivalDate != null}" class="text-gray-400">未定</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div th:unless="${pendingOrdersMap.containsKey(inv.part.productCode)}" class="text-center py-6 text-gray-400 text-sm">
+                    現在、入荷待ちの注文はありません。
+                </div>
+            </div>
+            
+            <div class="mt-6 flex justify-end">
+                <button onclick="closeAllModals()" class="px-4 py-2 bg-gray-100 font-bold text-gray-600 rounded">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS Master Data Payload -->
+    <script>
+        const modalOverlay = document.getElementById('modalOverlay');
+
+        function closeAllModals() {
+            modalOverlay.classList.add('hidden');
+            document.querySelectorAll('.detail-modal').forEach(m => m.classList.add('hidden'));
+        }
+
+        function openDetailModal(code) {
+            const modal = document.getElementById('detailModal-' + code);
+            if(modal) {
+                modalOverlay.classList.remove('hidden');
+                modal.classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+</html>

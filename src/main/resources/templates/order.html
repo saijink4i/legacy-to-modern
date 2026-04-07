@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLMS - 発注処理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen">
+    
+    <!-- Render Global Navbar -->
+    <div th:replace="~{fragments/nav :: navbar}"></div>
+
+    <div class="max-w-3xl mx-auto py-10 px-4">
+        <div class="bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden">
+            <div class="bg-blue-600 text-white p-6">
+                <h1 class="text-2xl font-extrabold tracking-wider">🛒 部品発注 (New Order)</h1>
+                <p class="text-blue-100 mt-2 text-sm">必要な部品を検索して、サプライヤーに発注依頼を生成します。</p>
+            </div>
+            
+            <div class="p-8">
+                <!-- Alerts -->
+                <div th:if="${message}" class="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 mb-6 shadow-sm" role="alert">
+                    <p th:text="${message}" class="font-bold"></p>
+                </div>
+                <div th:if="${error}" class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 shadow-sm" role="alert">
+                    <p th:text="${error}" class="font-bold"></p>
+                </div>
+
+                <form id="orderForm" method="post" class="space-y-6">
+                    <div class="relative">
+                        <label class="block text-sm font-bold text-gray-700 mb-1">対象部品検索 (Search Part)</label>
+                        <input type="text" id="partSearchInput" placeholder="部品名またはコードを入力..." autocomplete="off" oninput="filterPartList()" onclick="togglePartList(true)" class="block w-full border border-gray-300 rounded-lg p-3 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm font-bold text-lg">
+                        <input type="hidden" id="selectedPartCode" name="productCode" required>
+                        <input type="hidden" id="activePartPrice" value="0">
+                        <input type="hidden" id="activePartUnit" value="0">
+                        <input type="hidden" id="activePartLeadTime" value="0">
+                        
+                        <ul id="partDropdownList" class="absolute z-10 w-full mt-1 bg-white shadow-2xl border border-gray-200 rounded-lg max-h-64 overflow-y-auto hidden">
+                            <li th:each="m : ${allMasterParts}" 
+                                class="part-item cursor-pointer px-4 py-3 hover:bg-blue-50 border-b border-gray-50 last:border-b-0 transition"
+                                th:data-code="${m.productCode}"
+                                th:data-name="${m.name}"
+                                th:data-price="${m.price}"
+                                th:data-unit="${m.orderUnit}"
+                                th:data-lead="${m.leadTimeDays}"
+                                onclick="selectPart(this)">
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <span class="font-bold text-gray-800" th:text="${m.productCode}"></span>
+                                        <span class="text-sm font-medium text-gray-500 ml-2" th:text="${m.name}"></span>
+                                    </div>
+                                    <span class="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded-full" th:text="'¥' + ${m.price} + ' / ' + ${m.orderUnit} + '個'"></span>
+                                </div>
+                            </li>
+                            <li id="noPartFound" class="px-4 py-4 text-center text-gray-500 hidden text-sm font-medium">検索結果がありません</li>
+                        </ul>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">発注セット数 (Multiplier)</label>
+                            <input type="number" id="orderQuantity" name="quantity" value="1" min="1" oninput="updateOrderPreview()" class="block w-full rounded-lg border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500 font-bold text-lg">
+                            <input type="hidden" name="remarks" id="orderRemarks" value="UI Web Form">
+                        </div>
+                        <div class="bg-gray-50 border rounded-lg p-3 flex flex-col justify-center items-center">
+                            <p class="text-xs text-gray-500 font-bold mb-1">マスター単位設定</p>
+                            <p class="text-lg font-semibold text-gray-800"><span id="previewUnit" class="font-extrabold text-blue-600">1</span>個/セット</p>
+                        </div>
+                    </div>
+
+                    <!-- Preview Area -->
+                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-6 shadow-md mt-8 relative overflow-hidden">
+                        <div class="absolute right-0 top-0 opacity-10">
+                            <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 20 20"><path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4zM3 8h14v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm5 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"></path></svg>
+                        </div>
+                        <h3 class="text-sm font-black text-indigo-800 mb-4 uppercase tracking-widest border-b border-indigo-200 pb-2">見積書プレビュー</h3>
+                        <div class="flex justify-between items-center mb-3 relative z-10">
+                            <span class="text-gray-600 font-bold">予想総額 (Total Amount):</span>
+                            <span class="text-3xl font-black text-blue-700 drop-shadow-sm" id="previewTotalPrice">¥0</span>
+                        </div>
+                        <div class="flex justify-between items-center mt-6 relative z-10">
+                            <span class="text-gray-600 font-bold mt-2">入庫予定日 (Expected Date):</span>
+                            <input type="date" name="expectedArrivalDate" id="expectedArrivalDateInput" required class="bg-white border-2 border-green-500 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-green-300 text-xl font-bold text-green-700 shadow-sm cursor-pointer">
+                        </div>
+                        <p class="text-xs text-right text-gray-500 mt-2 relative z-10">※基準入荷リードタイム: <span id="previewLeadTime" class="font-bold">0</span>日</p>
+                    </div>
+
+                    <div class="mt-8 pt-6 border-t flex justify-end">
+                        <button type="submit" id="submitOrderBtn" disabled class="px-8 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg transition font-extrabold text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            注文を確定する
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS Master Data Payload -->
+    <script>
+        const ptInput = document.getElementById('partSearchInput');
+        const ptCodeHidden = document.getElementById('selectedPartCode');
+        const ptDropdown = document.getElementById('partDropdownList');
+        const items = document.querySelectorAll('.part-item');
+        const pPrice = document.getElementById('activePartPrice');
+        const pUnit = document.getElementById('activePartUnit');
+        const pLead = document.getElementById('activePartLeadTime');
+
+        const qtyInput = document.getElementById('orderQuantity');
+        const prevUnit = document.getElementById('previewUnit');
+        const prevPrice = document.getElementById('previewTotalPrice');
+        const prevDateInput = document.getElementById('expectedArrivalDateInput');
+        const prevLead = document.getElementById('previewLeadTime');
+        const submitBtn = document.getElementById('submitOrderBtn');
+        const orderForm = document.getElementById('orderForm');
+
+        document.addEventListener('click', function(e) {
+            if (!ptInput.contains(e.target) && !ptDropdown.contains(e.target)) {
+                togglePartList(false);
+            }
+        });
+
+        function togglePartList(show) {
+            if(show) {
+                ptDropdown.classList.remove('hidden');
+                filterPartList();
+            } else {
+                ptDropdown.classList.add('hidden');
+            }
+        }
+
+        function filterPartList() {
+            const filter = ptInput.value.toLowerCase();
+            let found = false;
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                const isMatch = text.includes(filter);
+                item.style.display = isMatch ? 'block' : 'none';
+                if(isMatch) found = true;
+            });
+            document.getElementById('noPartFound').style.display = found ? 'none' : 'block';
+        }
+
+        function selectPart(element) {
+            const code = element.getAttribute('data-code');
+            const name = element.getAttribute('data-name');
+            ptInput.value = code + ' - ' + name;
+            ptCodeHidden.value = code;
+            
+            pPrice.value = element.getAttribute('data-price');
+            pUnit.value = element.getAttribute('data-unit');
+            pLead.value = element.getAttribute('data-lead');
+
+            togglePartList(false);
+            updateOrderPreview();
+        }
+
+        function updateOrderPreview() {
+            const code = ptCodeHidden.value;
+            const q = parseInt(qtyInput.value) || 0;
+            const price = parseInt(pPrice.value) || 0;
+            const unit = parseInt(pUnit.value) || 0;
+            const lead = parseInt(pLead.value) || 0;
+            
+            if (!code || unit === 0) {
+                prevUnit.textContent = "0";
+                prevPrice.textContent = "¥0";
+                prevDateInput.value = "";
+                prevLead.textContent = "0";
+                submitBtn.disabled = true;
+                return;
+            }
+
+            orderForm.action = `/parts/${code}/order`;
+            const totalQuantity = q * unit;
+            const totalPrice = totalQuantity * price;
+            
+            const today = new Date();
+            today.setDate(today.getDate() + lead);
+            const expectedDateString = today.toISOString().split('T')[0];
+
+            prevUnit.textContent = unit;
+            prevPrice.textContent = "¥" + totalPrice.toLocaleString();
+            prevDateInput.min = expectedDateString;
+            prevDateInput.value = expectedDateString;
+            prevLead.textContent = lead;
+
+            submitBtn.disabled = (q <= 0);
+        }
+
+        // Auto-fill logic for ?preCode URL parameter (smart route from Inventory check)
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const preCode = urlParams.get('preCode');
+            if(preCode) {
+                items.forEach(item => {
+                    if(item.getAttribute('data-code') === preCode) {
+                        selectPart(item);
+                    }
+                });
+            }
+        };
+    </script>
+</body>
+</html>

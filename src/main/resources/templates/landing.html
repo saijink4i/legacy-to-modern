@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLMS - メインポータル</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen">
+    
+    <!-- Render Global Navbar -->
+    <div th:replace="~{fragments/nav :: navbar}"></div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 text-center">
+        <!-- Alerts -->
+        <div th:if="${message}" class="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-r-md shadow-sm inline-block w-full max-w-2xl mx-auto" role="alert">
+            <p th:text="${message}" class="font-medium"></p>
+        </div>
+        <div th:if="${error}" class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-r-md shadow-sm inline-block w-full max-w-2xl mx-auto" role="alert">
+            <p th:text="${error}" class="font-medium"></p>
+        </div>
+
+        <h1 class="text-4xl font-extrabold text-gray-900 tracking-tight sm:text-5xl border-b pb-8">
+            PLMS <span class="text-indigo-600">Enterprise</span> 🌟
+        </h1>
+        <p class="mt-6 max-w-2xl mx-auto text-lg text-gray-500">
+            部品の在庫、発注、入庫、廃棄、マスターデータを上のメニューバー（ナビゲーター）から一括管理できます。
+        </p>
+    </div>
+</body>
+</html>
