@@ -66,7 +66,13 @@
                         <td class="px-6 py-4 text-center font-medium text-gray-900" th:text="${part.expirationDays}"></td>
                         <td class="px-6 py-4 text-center font-medium text-gray-900" th:text="${part.leadTimeDays}"></td>
                         <td class="px-6 py-4 text-center">
-                            <button th:onclick="openEditModal([[${part.productCode}]], [[${part.name}]], [[${part.price}]], [[${part.orderUnit}]], [[${part.expirationDays}]], [[${part.leadTimeDays}]])" 
+                            <button th:data-code="${part.productCode}"
+                                    th:data-name="${part.name}"
+                                    th:data-price="${part.price}"
+                                    th:data-unit="${part.orderUnit}"
+                                    th:data-exp="${part.expirationDays}"
+                                    th:data-lead="${part.leadTimeDays}"
+                                    onclick="openEditModal(this.getAttribute('data-code'), this.getAttribute('data-name'), this.getAttribute('data-price'), this.getAttribute('data-unit'), this.getAttribute('data-exp'), this.getAttribute('data-lead'))" 
                                     class="text-blue-600 hover:text-white border border-blue-600 hover:bg-blue-600 px-4 py-1.5 rounded transition text-xs font-bold">
                                 編集
                             </button>

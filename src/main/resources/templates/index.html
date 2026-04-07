@@ -57,10 +57,10 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" th:text="${#temporals.format(part.updatedAt, 'yyyy-MM-dd HH:mm')}"></td>
                         <td class="px-6 py-4 whitespace-nowrap font-medium text-center space-x-2">
                             <!-- Detail Button -->
-                            <button type="button" th:onclick="'openDetailModal(\'' + ${part.productCode} + '\')'" class="text-gray-600 hover:text-gray-900 bg-gray-50 border border-gray-200 px-3 py-1 rounded transition text-sm">詳細</button>
+                            <button type="button" th:data-code="${part.productCode}" onclick="openDetailModal(this.getAttribute('data-code'))" class="text-gray-600 hover:text-gray-900 bg-gray-50 border border-gray-200 px-3 py-1 rounded transition text-sm">詳細</button>
                             
                             <!-- Inline Auto-fill Order Button -->
-                            <button type="button" th:onclick="'openOrderModal(\'' + ${part.productCode} + '\')'" class="text-blue-600 hover:text-blue-900 bg-blue-50 border border-blue-200 px-3 py-1 rounded transition text-sm">再注文</button>
+                            <button type="button" th:data-code="${part.productCode}" onclick="openOrderModal(this.getAttribute('data-code'))" class="text-blue-600 hover:text-blue-900 bg-blue-50 border border-blue-200 px-3 py-1 rounded transition text-sm">再注文</button>
 
                             <form th:action="@{/parts/{code}/receive(code=${part.productCode})}" method="post" class="inline" th:if="${part.incomingQuantity > 0}">
                                 <input type="hidden" name="quantity" th:value="${part.incomingQuantity}">
