@@ -4,6 +4,7 @@ import com.example.plms.domain.Inventory;
 import com.example.plms.domain.Part;
 import com.example.plms.domain.PurchaseOrder;
 import com.example.plms.service.PartLifecycleService;
+import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
