@@ -75,10 +75,10 @@ public class PartController {
     }
 
     @PostMapping("/master/register")
-    public String registerMaster(@ModelAttribute Part part, RedirectAttributes redirectAttributes) {
+    public String registerMaster(@ModelAttribute Part part, @RequestParam(defaultValue = "0") int stockQuantity, RedirectAttributes redirectAttributes) {
         try {
-            partService.registerPart(part);
-            redirectAttributes.addFlashAttribute("message", "部品マスタ(" + part.getProductCode() + ")が新規登録されました。基礎在庫0個が自動割当されます。");
+            partService.registerPart(part, stockQuantity);
+            redirectAttributes.addFlashAttribute("message", "部品マスタ(" + part.getProductCode() + ")が新規登録されました。初期在庫(" + stockQuantity + "個)が割当されました。");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "部品マスタ登録失敗: " + e.getMessage());
         }

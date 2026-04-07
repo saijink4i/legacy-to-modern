@@ -36,7 +36,7 @@ public class PartLifecycleService {
     }
 
     // 부품 신규 등록
-    public Part registerPart(Part part) {
+    public Part registerPart(Part part, int initialStock) {
         if (part.getPrice() < 0) {
             throw new IllegalArgumentException("부품 가격은 0 이상이어야 합니다.");
         }
@@ -48,6 +48,7 @@ public class PartLifecycleService {
         // 부품 마스터 생성 시 자동으로 재고 마스터도 생성
         Inventory inventory = new Inventory();
         inventory.setPart(savedPart);
+        inventory.setCurrentStock(initialStock > 0 ? initialStock : 0);
         inventoryRepository.save(inventory);
         
         return savedPart;
