@@ -5,7 +5,6 @@ RUN chmod +x ./gradlew
 RUN ./gradlew build -x test
 
 FROM eclipse-temurin:17-jre-alpine
-VOLUME /tmp
 # Copy any jar generated (bypasses version name requirements)
 COPY --from=build /workspace/app/build/libs/*.jar app.jar
 ENV SPRING_PROFILES_ACTIVE=prod
