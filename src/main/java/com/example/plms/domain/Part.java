@@ -20,7 +20,7 @@ public class Part {
     @Column(nullable = false)
     private int stockQuantity;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "integer default 0")
     private int incomingQuantity = 0;
 
     private LocalDateTime createdAt;
