@@ -24,93 +24,216 @@
             <p th:text="${error}" class="font-medium"></p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
-            <!-- New Part Registration Form -->
-            <div class="md:col-span-1 bg-green-50/50 p-6 rounded-xl border border-green-100 h-fit">
-                <h2 class="text-xl font-bold mb-4 text-gray-800">新規部品マスター登録</h2>
-                <form th:action="@{/parts}" method="post" class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700">部品コード</label>
-                        <input type="text" name="productCode" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border bg-white">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700">部品名</label>
-                        <input type="text" name="name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border bg-white">
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700">初期在庫数</label>
-                            <input type="number" name="stockQuantity" value="0" min="0" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border bg-white">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700">価格</label>
-                            <input type="number" name="price" value="100" min="1" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border bg-white">
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700">注文単位数</label>
-                            <input type="number" name="orderUnit" value="1" min="1" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border bg-white">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700">有効期間(日)</label>
-                            <input type="number" name="expirationDays" value="365" min="0" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border bg-white">
-                        </div>
-                    </div>
-                    <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition duration-150 shadow-sm mt-4">
-                        登録する
-                    </button>
-                </form>
-            </div>
-
-            <!-- Master List Update -->
-            <div class="md:col-span-2 bg-gray-50 p-6 rounded-xl border border-gray-200">
-                <h2 class="text-xl font-bold mb-4 text-gray-800">登録済みマスターデータ一覧</h2>
-                
-                <div class="overflow-x-auto bg-white rounded-lg border border-gray-200">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-100">
-                            <tr>
-                                <th class="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">コード/部品名</th>
-                                <th class="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">価格</th>
-                                <th class="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">注文単位(N個)</th>
-                                <th class="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">有効(日)</th>
-                                <th class="px-3 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">編集</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200">
-                            <tr th:each="part : ${parts}" class="hover:bg-gray-50 transition">
-                                <form th:action="@{/master/update}" method="post">
-                                    <input type="hidden" name="productCode" th:value="${part.productCode}">
-                                    
-                                    <td class="px-3 py-4">
-                                        <div class="text-sm font-bold text-gray-900" th:text="${part.productCode}"></div>
-                                        <div class="text-xs text-gray-500" th:text="${part.name}"></div>
-                                    </td>
-                                    <td class="px-3 py-4">
-                                        <input type="number" name="price" th:value="${part.price}" class="w-16 border rounded px-2 py-1 text-sm bg-white" required min="1">
-                                    </td>
-                                    <td class="px-3 py-4">
-                                        <input type="number" name="orderUnit" th:value="${part.orderUnit}" class="w-16 border rounded px-2 py-1 text-sm bg-white" required min="1">
-                                    </td>
-                                    <td class="px-3 py-4">
-                                        <input type="number" name="expirationDays" th:value="${part.expirationDays}" class="w-16 border rounded px-2 py-1 text-sm bg-white" required min="0">
-                                    </td>
-                                    <td class="px-3 py-4 text-center">
-                                        <button type="submit" class="text-blue-600 hover:text-white border border-blue-600 hover:bg-blue-600 px-3 py-1 rounded transition text-xs font-bold">更新</button>
-                                    </td>
-                                </form>
-                            </tr>
-                            <tr th:if="${#lists.isEmpty(parts)}">
-                                <td colspan="5" class="px-6 py-8 text-center text-gray-500">
-                                    データがありません。
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+        <!-- Top Actions: Search and Add Button -->
+        <div class="flex flex-col md:flex-row justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-200 mb-6 gap-4">
+            <div class="relative w-full md:w-1/2">
+                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <svg aria-hidden="true" class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 </div>
+                <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="コード、部品名でマスター検索..." class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5 shadow-sm">
             </div>
+            <button onclick="openAddModal()" class="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-6 rounded-lg transition duration-150 shadow-sm flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                </svg>
+                新規部品登録
+            </button>
         </div>
+
+        <!-- Master List Table -->
+        <h2 class="text-xl font-bold mb-4 text-gray-800">登録済みマスターデータ一覧</h2>
+        
+        <div class="overflow-x-auto bg-white rounded-lg border border-gray-200 shadow-sm">
+            <table class="min-w-full divide-y divide-gray-200" id="partsTable">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">コード/部品名</th>
+                        <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">価格</th>
+                        <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">注文単位(N個)</th>
+                        <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">有効(日)</th>
+                        <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">編集</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    <tr th:each="part : ${parts}" class="hover:bg-gray-50 transition part-row">
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-bold text-gray-900 part-code" th:text="${part.productCode}"></div>
+                            <div class="text-xs text-gray-500 part-name" th:text="${part.name}"></div>
+                        </td>
+                        <td class="px-6 py-4 text-center font-medium text-gray-900" th:text="${part.price}"></td>
+                        <td class="px-6 py-4 text-center font-medium text-gray-900" th:text="${part.orderUnit}"></td>
+                        <td class="px-6 py-4 text-center font-medium text-gray-900" th:text="${part.expirationDays}"></td>
+                        <td class="px-6 py-4 text-center">
+                            <button th:onclick="openEditModal([[${part.productCode}]], [[${part.name}]], [[${part.price}]], [[${part.orderUnit}]], [[${part.expirationDays}]])" 
+                                    class="text-blue-600 hover:text-white border border-blue-600 hover:bg-blue-600 px-4 py-1.5 rounded transition text-xs font-bold">
+                                編集
+                            </button>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(parts)}" id="emptyRow">
+                        <td colspan="5" class="px-6 py-10 text-center text-gray-500">
+                            データがありません。右上の新規登録ボタンから作成してください。
+                        </td>
+                    </tr>
+                    <tr id="noResultsRow" style="display: none;">
+                        <td colspan="5" class="px-6 py-10 text-center text-gray-500">
+                            検索結果が見つかりませんでした。
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <!-- Modals Background/Overlay -->
+    <div id="modalOverlay" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-40 hidden transition-opacity" onclick="closeModals()"></div>
+
+    <!-- Add Part Modal -->
+    <div id="addModal" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-xl shadow-2xl z-50 hidden" role="dialog">
+        <div class="flex justify-between items-center border-b p-5">
+            <h2 class="text-xl font-bold text-gray-800">新規部品マスター登録</h2>
+            <button onclick="closeModals()" class="text-gray-400 hover:text-gray-600 transition">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <div class="p-6">
+            <form th:action="@{/parts}" method="post" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700">部品コード</label>
+                    <input type="text" name="productCode" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700">部品名</label>
+                    <input type="text" name="name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700">初期在庫数</label>
+                        <input type="number" name="stockQuantity" value="0" min="0" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700">価格</label>
+                        <input type="number" name="price" value="100" min="1" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700">注文単位数</label>
+                        <input type="number" name="orderUnit" value="1" min="1" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700">有効期間(日)</label>
+                        <input type="number" name="expirationDays" value="365" min="0" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end space-x-3">
+                    <button type="button" onclick="closeModals()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">キャンセル</button>
+                    <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition">登録する</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Part Modal -->
+    <div id="editModal" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-xl shadow-2xl z-50 hidden" role="dialog">
+        <div class="flex justify-between items-center border-b p-5">
+            <h2 class="text-xl font-bold text-gray-800">マスターデータ編集</h2>
+            <button onclick="closeModals()" class="text-gray-400 hover:text-gray-600 transition">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <div class="p-6">
+            <form th:action="@{/master/update}" method="post" class="space-y-4">
+                <input type="hidden" name="productCode" id="editProductCode">
+                
+                <div class="bg-gray-50 p-4 rounded-lg mb-4 border">
+                    <p class="text-sm text-gray-500">部品コード</p>
+                    <p class="font-bold text-gray-900 text-lg" id="displayProductCode"></p>
+                    <p class="text-sm text-gray-600 mt-1" id="displayProductName"></p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700">価格</label>
+                    <input type="number" id="editPrice" name="price" required min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700">注文単位数</label>
+                        <input type="number" id="editOrderUnit" name="orderUnit" required min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700">有効期間(日)</label>
+                        <input type="number" id="editExpirationDays" name="expirationDays" required min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end space-x-3">
+                    <button type="button" onclick="closeModals()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">キャンセル</button>
+                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition">更新する</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JavaScript logic -->
+    <script>
+        function filterTable() {
+            var input = document.getElementById("searchInput");
+            var filter = input.value.toUpperCase();
+            var rows = document.querySelectorAll(".part-row");
+            var noResultsRow = document.getElementById("noResultsRow");
+            var emptyRow = document.getElementById("emptyRow");
+            
+            var matchCount = 0;
+
+            rows.forEach(function(row) {
+                var codeText = row.querySelector(".part-code").textContent;
+                var nameText = row.querySelector(".part-name").textContent;
+                if (codeText.toUpperCase().indexOf(filter) > -1 || nameText.toUpperCase().indexOf(filter) > -1) {
+                    row.style.display = "";
+                    matchCount++;
+                } else {
+                    row.style.display = "none";
+                }
+            });
+
+            // Handle empty/no results UI states
+            if (emptyRow === null) { 
+                if (matchCount === 0 && filter !== "") {
+                    noResultsRow.style.display = "";
+                } else {
+                    noResultsRow.style.display = "none";
+                }
+            }
+        }
+
+        const modalOverlay = document.getElementById('modalOverlay');
+        const addModal = document.getElementById('addModal');
+        const editModal = document.getElementById('editModal');
+
+        function openAddModal() {
+            modalOverlay.classList.remove('hidden');
+            addModal.classList.remove('hidden');
+        }
+
+        function openEditModal(code, name, price, orderUnit, expirationDays) {
+            document.getElementById('editProductCode').value = code;
+            document.getElementById('displayProductCode').textContent = code;
+            document.getElementById('displayProductName').textContent = name;
+            document.getElementById('editPrice').value = price;
+            document.getElementById('editOrderUnit').value = orderUnit;
+            document.getElementById('editExpirationDays').value = expirationDays;
+            
+            modalOverlay.classList.remove('hidden');
+            editModal.classList.remove('hidden');
+        }
+
+        function closeModals() {
+            modalOverlay.classList.add('hidden');
+            addModal.classList.add('hidden');
+            editModal.classList.add('hidden');
+        }
+    </script>
     </div>
 </body>
 </html>
