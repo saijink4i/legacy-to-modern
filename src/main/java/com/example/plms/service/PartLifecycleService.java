@@ -35,7 +35,7 @@ public class PartLifecycleService {
     }
     
     // 부품 마스터 업데이트
-    public Part updatePartMaster(String productCode, int price, int orderUnit, int expirationDays, int leadTimeDays) {
+    public Part updatePartMaster(String productCode, int price, int orderUnit, String expirationDate, int leadTimeDays) {
         if (price <= 0) {
             throw new IllegalArgumentException("부품 가격은 0보다 커야 합니다.");
         }
@@ -47,7 +47,7 @@ public class PartLifecycleService {
         
         part.setPrice(price);
         part.setOrderUnit(orderUnit);
-        part.setExpirationDays(expirationDays);
+        part.setExpirationDate(expirationDate);
         part.setLeadTimeDays(leadTimeDays);
         return partRepository.save(part);
     }
@@ -69,7 +69,7 @@ public class PartLifecycleService {
     }
 
     // 1. 발주 (Order)
-    public PartTransaction orderPart(String productCode, int quantity, String remarks) {
+    public PartTransaction orderPart(String productCode, int quantity, String remarks, java.time.LocalDate expectedArrivalDate) {
         if (quantity <= 0) {
             throw new IllegalArgumentException("발주 수량은 1개 이상이어야 합니다.");
         }
@@ -83,7 +83,13 @@ public class PartLifecycleService {
         transaction.setPart(part);
         transaction.setStatus(Status.ORDERED);
         transaction.setQuantity(totalQuantity);
-        transaction.setExpectedArrivalDate(java.time.LocalDate.now().plusDays(part.getLeadTimeDays()));
+        
+        java.time.LocalDate minDate = java.time.LocalDate.now().plusDays(part.getLeadTimeDays());
+        if (expectedArrivalDate != null && expectedArrivalDate.isBefore(minDate)) {
+            throw new IllegalArgumentException("입하 예정일은 기본 리드타임(" + minDate + ") 이전으로 설정할 수 없습니다.");
+        }
+        transaction.setExpectedArrivalDate(expectedArrivalDate != null ? expectedArrivalDate : minDate);
+        
         transaction.setRemarks(remarks + " (単位: " + part.getOrderUnit() + " x " + quantity + ")");
         
         part.setIncomingQuantity(part.getIncomingQuantity() + totalQuantity);

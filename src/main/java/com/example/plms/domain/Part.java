@@ -29,8 +29,8 @@ public class Part {
     @Column(nullable = false, columnDefinition = "integer default 1")
     private int orderUnit = 1;
 
-    @Column(nullable = false, columnDefinition = "integer default 0")
-    private int expirationDays = 0;
+    @Column(nullable = false, length = 8)
+    private String expirationDate = "99999999";
 
     @Column(nullable = false, columnDefinition = "integer default 0")
     private int leadTimeDays = 0;
@@ -67,8 +67,8 @@ public class Part {
     public void setPrice(int price) { this.price = price; }
     public int getOrderUnit() { return orderUnit; }
     public void setOrderUnit(int orderUnit) { this.orderUnit = orderUnit; }
-    public int getExpirationDays() { return expirationDays; }
-    public void setExpirationDays(int expirationDays) { this.expirationDays = expirationDays; }
+    public String getExpirationDate() { return expirationDate; }
+    public void setExpirationDate(String expirationDate) { this.expirationDate = expirationDate; }
     public int getLeadTimeDays() { return leadTimeDays; }
     public void setLeadTimeDays(int leadTimeDays) { this.leadTimeDays = leadTimeDays; }
     public LocalDateTime getCreatedAt() { return createdAt; }

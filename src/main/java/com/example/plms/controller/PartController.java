@@ -7,7 +7,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.format.annotation.DateTimeFormat;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -56,9 +58,9 @@ public class PartController {
     }
 
     @PostMapping("/master/update")
-    public String updateMaster(@RequestParam String productCode, @RequestParam int price, @RequestParam int orderUnit, @RequestParam int expirationDays, @RequestParam int leadTimeDays, RedirectAttributes redirectAttributes) {
+    public String updateMaster(@RequestParam String productCode, @RequestParam int price, @RequestParam int orderUnit, @RequestParam String expirationDate, @RequestParam int leadTimeDays, RedirectAttributes redirectAttributes) {
         try {
-            partService.updatePartMaster(productCode, price, orderUnit, expirationDays, leadTimeDays);
+            partService.updatePartMaster(productCode, price, orderUnit, expirationDate, leadTimeDays);
             redirectAttributes.addFlashAttribute("message", "부품 마스터(" + productCode + ")가 수정되었습니다.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "마스터 수정 실패: " + e.getMessage());
@@ -67,9 +69,9 @@ public class PartController {
     }
 
     @PostMapping("/parts/{code}/order")
-    public String orderPart(@PathVariable String code, @RequestParam int quantity, @RequestParam(required = false) String remarks, RedirectAttributes redirectAttributes) {
+    public String orderPart(@PathVariable String code, @RequestParam int quantity, @RequestParam(required = false) String remarks, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate expectedArrivalDate, RedirectAttributes redirectAttributes) {
         try {
-            partService.orderPart(code, quantity, remarks);
+            partService.orderPart(code, quantity, remarks, expectedArrivalDate);
             redirectAttributes.addFlashAttribute("message", "부품(" + code + ") 발주가 성공적으로 접수되었습니다.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "발주 실패: " + e.getMessage());

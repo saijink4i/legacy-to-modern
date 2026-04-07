@@ -147,9 +147,9 @@
                         <span class="text-sm font-bold text-gray-600">予想総額 (Total Amount):</span>
                         <span class="text-2xl font-extrabold text-blue-700" id="previewTotalPrice">0</span>
                     </div>
-                    <div class="flex justify-between items-center">
+                    <div class="flex justify-between items-center mt-3">
                         <span class="text-sm font-bold text-gray-600">入庫予定日 (Expected Date):</span>
-                        <span class="text-lg font-bold text-green-700" id="previewArrivalDate">-</span>
+                        <input type="date" name="expectedArrivalDate" id="expectedArrivalDateInput" required class="bg-transparent border-b-2 border-green-600 focus:outline-none focus:border-green-800 text-lg font-bold text-green-700 min-w-[140px] text-right cursor-pointer">
                     </div>
                     <p class="text-xs text-right text-gray-400 mt-1">※入荷リードタイム: <span id="previewLeadTime">0</span>日</p>
                 </div>
@@ -225,7 +225,7 @@
         const qtyInput = document.getElementById('orderQuantity');
         const prevUnit = document.getElementById('previewUnit');
         const prevPrice = document.getElementById('previewTotalPrice');
-        const prevDate = document.getElementById('previewArrivalDate');
+        const prevDateInput = document.getElementById('expectedArrivalDateInput');
         const prevLead = document.getElementById('previewLeadTime');
         const submitBtn = document.getElementById('submitOrderBtn');
         const orderForm = document.getElementById('orderForm');
@@ -316,7 +316,7 @@
             if (!code || unit === 0) {
                 prevUnit.textContent = "0";
                 prevPrice.textContent = "0";
-                prevDate.textContent = "-";
+                prevDateInput.value = "";
                 prevLead.textContent = "0";
                 submitBtn.disabled = true;
                 return;
@@ -331,8 +331,9 @@
             const expectedDateString = today.toISOString().split('T')[0];
 
             prevUnit.textContent = unit;
-            prevPrice.textContent = "₩" + totalPrice.toLocaleString();
-            prevDate.textContent = expectedDateString;
+            prevPrice.textContent = "¥" + totalPrice.toLocaleString();
+            prevDateInput.min = expectedDateString;
+            prevDateInput.value = expectedDateString;
             prevLead.textContent = lead;
 
             submitBtn.disabled = (q <= 0);
