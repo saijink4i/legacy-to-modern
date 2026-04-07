@@ -100,6 +100,7 @@ public class PartController {
     @GetMapping("/order")
     public String orderPage(Model model) {
         model.addAttribute("allMasterParts", partService.getAllParts());
+        model.addAttribute("orders", partService.getAllPurchaseOrders());
         return "order";
     }
 
@@ -111,7 +112,18 @@ public class PartController {
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "発注失敗: " + e.getMessage());
         }
-        return "redirect:/";
+        return "redirect:/order";
+    }
+    
+    @PostMapping("/order/update")
+    public String updateOrder(@RequestParam String orderNumber, @RequestParam int quantity, @RequestParam(required = false) String remarks, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate expectedArrivalDate, RedirectAttributes redirectAttributes) {
+        try {
+            PurchaseOrder order = partService.updateOrder(orderNumber, quantity, remarks, expectedArrivalDate);
+            redirectAttributes.addFlashAttribute("message", "発注No [" + order.getOrderNumber() + "] が成功的に修正されました。");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "発注修正失敗: " + e.getMessage());
+        }
+        return "redirect:/order";
     }
 
     // 5. Dispose UI & API

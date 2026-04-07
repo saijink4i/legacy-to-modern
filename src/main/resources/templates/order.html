@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PLMS - 発注処理</title>
+    <title>PLMS - 発注管理</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 text-gray-800 font-sans min-h-screen">
@@ -11,98 +11,333 @@
     <!-- Render Global Navbar -->
     <div th:replace="~{fragments/nav :: navbar('order')}"></div>
 
-    <div class="max-w-3xl mx-auto py-10 px-4">
-        <div class="bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden">
-            <div class="bg-blue-600 text-white p-6">
-                <h1 class="text-2xl font-extrabold tracking-wider">🛒 部品発注 (New Order)</h1>
-                <p class="text-blue-100 mt-2 text-sm">必要な部品を検索して、サプライヤーに発注依頼を生成します。</p>
+    <div class="max-w-7xl mx-auto py-8 px-4">
+        
+        <!-- Header & Action Buttons -->
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <div>
+                <h1 class="text-3xl font-extrabold text-blue-700">🛒 発注・注文リスト</h1>
+                <p class="text-sm text-gray-500 mt-1">すべての発注履歴とステータスを管理します。</p>
             </div>
-            
-            <div class="p-8">
-                <!-- Alerts -->
-                <div th:if="${message}" class="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 mb-6 shadow-sm" role="alert">
-                    <p th:text="${message}" class="font-bold"></p>
-                </div>
-                <div th:if="${error}" class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 shadow-sm" role="alert">
-                    <p th:text="${error}" class="font-bold"></p>
-                </div>
+            <div class="flex space-x-3">
+                <!-- Part Search Button -->
+                <button onclick="openModal('partSearchModal')" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-2.5 px-4 rounded-lg shadow-sm transition flex items-center gap-2">
+                    <span>🔍</span> 部品マスター検索
+                </button>
+                <!-- New Order Button -->
+                <button onclick="openModal('newOrderModal')" class="bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-2.5 px-5 rounded-lg shadow-md transition flex items-center gap-2">
+                    <span>➕</span> 新規発注
+                </button>
+            </div>
+        </div>
 
-                <form id="orderForm" method="post" class="space-y-6">
-                    <div class="relative">
-                        <label class="block text-sm font-bold text-gray-700 mb-1">対象部品検索 (Search Part)</label>
-                        <input type="text" id="partSearchInput" placeholder="部品名またはコードを入力..." autocomplete="off" oninput="filterPartList()" onclick="togglePartList(true)" class="block w-full border border-gray-300 rounded-lg p-3 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm font-bold text-lg">
-                        <input type="hidden" id="selectedPartCode" name="productCode" required>
-                        <input type="hidden" id="activePartPrice" value="0">
-                        <input type="hidden" id="activePartUnit" value="0">
-                        <input type="hidden" id="activePartLeadTime" value="0">
-                        
-                        <ul id="partDropdownList" class="absolute z-10 w-full mt-1 bg-white shadow-2xl border border-gray-200 rounded-lg max-h-64 overflow-y-auto hidden">
-                            <li th:each="m : ${allMasterParts}" 
-                                class="part-item cursor-pointer px-4 py-3 hover:bg-blue-50 border-b border-gray-50 last:border-b-0 transition"
-                                th:data-code="${m.productCode}"
-                                th:data-name="${m.name}"
-                                th:data-price="${m.price}"
-                                th:data-unit="${m.orderUnit}"
-                                th:data-lead="${m.leadTimeDays}"
-                                onclick="selectPart(this)">
-                                <div class="flex justify-between items-center">
-                                    <div>
-                                        <span class="font-bold text-gray-800" th:text="${m.productCode}"></span>
-                                        <span class="text-sm font-medium text-gray-500 ml-2" th:text="${m.name}"></span>
-                                    </div>
-                                    <span class="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded-full" th:text="'¥' + ${m.price} + ' / ' + ${m.orderUnit} + '個'"></span>
-                                </div>
-                            </li>
-                            <li id="noPartFound" class="px-4 py-4 text-center text-gray-500 hidden text-sm font-medium">検索結果がありません</li>
-                        </ul>
-                    </div>
+        <!-- Alerts -->
+        <div th:if="${message}" class="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 mb-6 shadow-sm rounded-r-md" role="alert">
+            <p th:text="${message}" class="font-bold"></p>
+        </div>
+        <div th:if="${error}" class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 shadow-sm rounded-r-md" role="alert">
+            <p th:text="${error}" class="font-bold"></p>
+        </div>
 
-                    <div class="grid grid-cols-2 gap-6">
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1">発注セット数 (Multiplier)</label>
-                            <input type="number" id="orderQuantity" name="quantity" value="1" min="1" oninput="updateOrderPreview()" class="block w-full rounded-lg border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500 font-bold text-lg">
-                            <input type="hidden" name="remarks" id="orderRemarks" value="UI Web Form">
-                        </div>
-                        <div class="bg-gray-50 border rounded-lg p-3 flex flex-col justify-center items-center">
-                            <p class="text-xs text-gray-500 font-bold mb-1">マスター単位設定</p>
-                            <p class="text-lg font-semibold text-gray-800"><span id="previewUnit" class="font-extrabold text-blue-600">1</span>個/セット</p>
-                        </div>
-                    </div>
+        <!-- ListView Table -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <!-- Search bar inline -->
+            <div class="p-4 border-b bg-gray-50">
+                <input type="text" id="orderSearchInput" onkeyup="filterOrders()" placeholder="注文番号、または部品コード・名称で検索..." class="w-full md:w-1/3 border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-blue-500 focus:border-blue-500 bg-white shadow-inner">
+            </div>
 
-                    <!-- Preview Area -->
-                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-6 shadow-md mt-8 relative overflow-hidden">
-                        <div class="absolute right-0 top-0 opacity-10">
-                            <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 20 20"><path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4zM3 8h14v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm5 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"></path></svg>
-                        </div>
-                        <h3 class="text-sm font-black text-indigo-800 mb-4 uppercase tracking-widest border-b border-indigo-200 pb-2">見積書プレビュー</h3>
-                        <div class="flex justify-between items-center mb-3 relative z-10">
-                            <span class="text-gray-600 font-bold">予想総額 (Total Amount):</span>
-                            <span class="text-3xl font-black text-blue-700 drop-shadow-sm" id="previewTotalPrice">¥0</span>
-                        </div>
-                        <div class="flex justify-between items-center mt-6 relative z-10">
-                            <span class="text-gray-600 font-bold mt-2">入庫予定日 (Expected Date):</span>
-                            <input type="date" name="expectedArrivalDate" id="expectedArrivalDateInput" required class="bg-white border-2 border-green-500 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-green-300 text-xl font-bold text-green-700 shadow-sm cursor-pointer">
-                        </div>
-                        <p class="text-xs text-right text-gray-500 mt-2 relative z-10">※基準入荷リードタイム: <span id="previewLeadTime" class="font-bold">0</span>日</p>
-                    </div>
-
-                    <div class="mt-8 pt-6 border-t flex justify-end">
-                        <button type="submit" id="submitOrderBtn" disabled class="px-8 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg transition font-extrabold text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                            注文を確定する
-                        </button>
-                    </div>
-                </form>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200" id="ordersTable">
+                    <thead class="bg-white">
+                        <tr>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">注文No / 日時</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">対象部品</th>
+                            <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">予定数量 (個)</th>
+                            <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">入庫予定日</th>
+                            <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">ステータス</th>
+                            <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">アクション</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 bg-white">
+                        <tr th:each="order : ${orders}" class="hover:bg-blue-50 transition duration-150 order-row">
+                            <td class="px-6 py-4">
+                                <div class="text-sm font-extrabold text-indigo-700 tracking-wide font-mono order-number" th:text="${order.orderNumber}"></div>
+                                <div class="text-xs text-gray-500 mt-1" th:text="${#temporals.format(order.orderDate, 'yyyy-MM-dd HH:mm')}"></div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm font-bold text-gray-900 order-part" th:text="${order.part.productCode}"></div>
+                                <div class="text-xs text-gray-600 mt-1" th:text="${order.part.name}"></div>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="text-lg font-black text-blue-600" th:text="${order.quantity}"></span>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="text-sm font-bold text-gray-700" th:text="${order.expectedArrivalDate != null ? #temporals.format(order.expectedArrivalDate, 'yyyy-MM-dd') : '未定'}"></span>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <span th:if="${order.status.name() == 'PENDING'}" class="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200">
+                                    入庫待機中
+                                </span>
+                                <span th:if="${order.status.name() == 'COMPLETED'}" class="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-green-100 text-green-800 border border-green-200">
+                                    入庫完了
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <button th:if="${order.status.name() == 'PENDING'}"
+                                        type="button" 
+                                        th:data-no="${order.orderNumber}"
+                                        th:data-pcode="${order.part.productCode}"
+                                        th:data-pname="${order.part.name}"
+                                        th:data-qty="${order.quantity}"
+                                        th:data-unit="${order.part.orderUnit}"
+                                        th:data-price="${order.part.price}"
+                                        th:data-date="${order.expectedArrivalDate}"
+                                        th:data-lead="${order.part.leadTimeDays}"
+                                        th:data-rem="${order.remarks}"
+                                        onclick="openEditOrderModal(this)"
+                                        class="text-blue-600 hover:text-blue-800 bg-white border border-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded transition font-bold text-sm shadow-sm inline-flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                    修正
+                                </button>
+                                <span th:unless="${order.status.name() == 'PENDING'}" class="text-xs font-bold text-gray-400">修正不可</span>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(orders)}" id="emptyOrderRow">
+                            <td colspan="6" class="px-6 py-16 text-center text-gray-500 border-dashed border-2 border-gray-100 m-4 rounded-xl">
+                                <p class="text-lg font-bold text-gray-400 mb-2">発注内訳がありません。</p>
+                                <p class="text-sm text-gray-400">右上の [新規発注] ボタンから部品を注文してください。</p>
+                            </td>
+                        </tr>
+                        <tr id="noOrdersResultsRow" style="display: none;">
+                            <td colspan="6" class="px-6 py-10 text-center text-gray-500 font-bold">
+                                検索条件に一致する注文がありません。
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 
-    <!-- JS Master Data Payload -->
+    <!-- Modals Background -->
+    <div id="modalOverlay" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-40 hidden transition-opacity" onclick="closeAllModals()"></div>
+
+    <!-- 1. 新規発注 モーダル (New Order Form) -->
+    <div id="newOrderModal" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white rounded-2xl shadow-2xl z-50 hidden flex flex-col max-h-[90vh]" role="dialog">
+        <div class="flex justify-between items-center border-b p-5 bg-blue-600 rounded-t-2xl">
+            <h2 class="text-2xl font-extrabold tracking-wider text-white">➕ 新規発注</h2>
+            <button onclick="closeAllModals()" class="text-blue-200 hover:text-white transition">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L6 6l12 12M18 6L6 18" /></svg>
+            </button>
+        </div>
+        <div class="p-6 overflow-y-auto">
+            <form action="/parts/{code}/order" method="post" id="newOrderForm" class="space-y-6">
+                <!-- Search Component -->
+                <div class="relative">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">対象部品検索 (Search Part)</label>
+                    <input type="text" id="partSearchInput" placeholder="部品名またはコードを入力..." autocomplete="off" oninput="filterPartList()" onclick="togglePartList(true)" class="block w-full border border-gray-300 rounded-lg p-3 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 shadow-inner font-bold text-lg text-blue-800">
+                    <input type="hidden" id="selectedPartCode" name="productCode" required>
+                    <input type="hidden" id="activePartPrice" value="0">
+                    <input type="hidden" id="activePartUnit" value="0">
+                    <input type="hidden" id="activePartLeadTime" value="0">
+                    
+                    <ul id="partDropdownList" class="absolute z-10 w-full mt-1 bg-white shadow-2xl border border-gray-200 rounded-lg max-h-48 overflow-y-auto hidden">
+                        <li th:each="m : ${allMasterParts}" 
+                            class="part-item cursor-pointer px-4 py-3 hover:bg-blue-50 border-b border-gray-50 last:border-b-0 transition"
+                            th:data-code="${m.productCode}"
+                            th:data-name="${m.name}"
+                            th:data-price="${m.price}"
+                            th:data-unit="${m.orderUnit}"
+                            th:data-lead="${m.leadTimeDays}"
+                            onclick="selectPart(this)">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <span class="font-bold text-gray-800" th:text="${m.productCode}"></span>
+                                    <span class="text-sm font-medium text-gray-500 ml-2" th:text="${m.name}"></span>
+                                </div>
+                                <span class="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded-full" th:text="'¥' + ${m.price} + ' / ' + ${m.orderUnit} + '個'"></span>
+                            </div>
+                        </li>
+                        <li id="noPartFound" class="px-4 py-4 text-center text-gray-500 hidden text-sm font-medium">検索結果がありません</li>
+                    </ul>
+                </div>
+
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">発注セット数 (Multiplier)</label>
+                        <input type="number" id="orderQuantity" name="quantity" value="1" min="1" oninput="updateOrderPreview()" class="block w-full rounded-lg border-gray-300 shadow-sm p-3 border focus:ring-blue-500 focus:border-blue-500 font-bold text-lg">
+                        <input type="hidden" name="remarks" value="新規発注(UI)">
+                    </div>
+                    <div class="bg-gray-50 border rounded-lg p-3 flex flex-col justify-center items-center">
+                        <p class="text-xs text-gray-500 font-bold mb-1">マスター単位設定</p>
+                        <p class="text-lg font-semibold text-gray-800"><span id="previewUnit" class="font-extrabold text-blue-600">0</span>個/セット</p>
+                    </div>
+                </div>
+
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-5 shadow-sm mt-4">
+                    <h3 class="text-xs font-black text-indigo-800 mb-2 uppercase tracking-widest border-b border-indigo-200 pb-1">見積書プレビュー</h3>
+                    <div class="flex justify-between items-center mb-2 mt-2">
+                        <span class="text-gray-600 font-bold text-sm">予想総額 (Amount):</span>
+                        <span class="text-2xl font-black text-blue-700 drop-shadow-sm" id="previewTotalPrice">¥0</span>
+                    </div>
+                    <div class="flex justify-between items-center mt-3">
+                        <span class="text-gray-600 font-bold text-sm mt-1">入庫予定日:</span>
+                        <input type="date" name="expectedArrivalDate" id="expectedArrivalDateInput" required class="bg-white border-2 border-green-500 rounded-lg p-1.5 focus:outline-none focus:ring-2 focus:ring-green-300 text-lg font-bold text-green-700 shadow-sm cursor-pointer">
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end gap-3 border-t pt-4">
+                    <button type="button" onclick="closeAllModals()" class="px-5 py-2.5 bg-gray-100 font-bold text-gray-600 rounded-xl hover:bg-gray-200 transition">キャンセル</button>
+                    <button type="submit" id="submitOrderBtn" disabled class="px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-md transition font-extrabold disabled:opacity-50 disabled:cursor-not-allowed">
+                        注文を確定する
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. 注文修正 モーダル (Edit Order Form) -->
+    <div id="editOrderModal" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-2xl shadow-2xl z-50 hidden flex flex-col max-h-[90vh]" role="dialog">
+        <div class="flex justify-between items-center border-b p-5 bg-yellow-500 rounded-t-2xl">
+            <h2 class="text-xl font-extrabold tracking-wider text-white">✍️ 発注内容 修正</h2>
+            <button onclick="closeAllModals()" class="text-yellow-100 hover:text-white transition">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L6 6l12 12M18 6L6 18" /></svg>
+            </button>
+        </div>
+        <div class="p-6 overflow-y-auto">
+            <form action="/order/update" method="post" id="editOrderForm" class="space-y-5">
+                
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p class="text-xs text-yellow-800 font-bold uppercase tracking-wider mb-1">対象注文 (Target Order)</p>
+                    <input type="text" id="editOrderNumber" name="orderNumber" readonly class="bg-transparent border-none p-0 text-xl font-extrabold text-gray-900 font-mono w-full focus:ring-0 cursor-default outline-none">
+                    <div class="mt-2 text-sm font-bold text-gray-600">
+                        部品: <span id="editPartText" class="text-blue-700"></span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">修正セット数 (Multiplier)</label>
+                        <input type="number" id="editOrderQuantity" name="quantity" min="1" required oninput="calcEditTotal()" class="block w-full rounded-lg border-gray-300 shadow-sm p-2.5 border focus:ring-yellow-500 focus:border-yellow-500 font-bold text-lg bg-yellow-50 text-yellow-900">
+                        <input type="hidden" name="remarks" id="editOrderRemarks" value="発注修正">
+                        
+                        <!-- Reference Fields -->
+                        <input type="hidden" id="editUnit">
+                        <input type="hidden" id="editPrice">
+                        <input type="hidden" id="editLeadTime">
+                    </div>
+                    <div class="bg-gray-50 border rounded-lg p-2.5 flex flex-col justify-center text-center">
+                        <p class="text-[10px] text-gray-500 font-bold mb-1">見積総額</p>
+                        <p class="text-xl font-black text-blue-700" id="editTotalPrice">¥0</p>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1 mt-2">入庫予定日変更</label>
+                    <input type="date" name="expectedArrivalDate" id="editExpectedDate" required class="block w-full bg-white border-2 border-gray-300 rounded-lg p-2 focus:outline-none focus:border-yellow-500 text-lg font-bold text-gray-800 shadow-sm cursor-pointer">
+                </div>
+                
+                <div class="bg-blue-50 text-blue-800 text-xs font-bold p-3 rounded-lg border border-blue-200 mt-2 flex gap-2">
+                    <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+                    <span>数量を変更すると、実在庫システムの[入庫予定数]が自動的に差分調整されます。</span>
+                </div>
+
+                <div class="mt-6 flex justify-end gap-3 border-t pt-4">
+                    <button type="button" onclick="closeAllModals()" class="px-5 py-2.5 bg-gray-100 font-bold text-gray-600 rounded-xl hover:bg-gray-200 transition">キャンセル</button>
+                    <button type="submit" class="px-6 py-2.5 bg-yellow-500 text-white rounded-xl hover:bg-yellow-600 shadow-md transition font-extrabold text-lg">
+                        変更内容を更新
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3. 部品マスター検索 モーダル (Part Search Directory) -->
+    <div id="partSearchModal" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl bg-white rounded-2xl shadow-2xl z-50 hidden flex flex-col max-h-[85vh]" role="dialog">
+         <div class="flex justify-between items-center border-b p-5 bg-gray-800 rounded-t-2xl">
+            <h2 class="text-xl font-extrabold tracking-wider text-white">🔍 登録部品 検索</h2>
+            <button onclick="closeAllModals()" class="text-gray-400 hover:text-white transition">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L6 6l12 12M18 6L6 18" /></svg>
+            </button>
+        </div>
+        <div class="p-6 flex-1 overflow-hidden flex flex-col">
+            <input type="text" id="masterSearch" onkeyup="filterMasterTable()" placeholder="部品コード、名称でマスターを高速検索..." class="w-full border-2 border-gray-300 rounded-lg p-3 text-lg font-bold focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 shadow-inner mb-4">
+            
+            <div class="overflow-y-auto border rounded-xl border-gray-200 flex-1">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-100 sticky top-0 shadow-sm z-10">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">部品コード</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">名称</th>
+                            <th class="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase">単価</th>
+                            <th class="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase">注文単位</th>
+                            <th class="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase">L/T(日)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 bg-white">
+                        <tr th:each="m : ${allMasterParts}" class="hover:bg-gray-50 master-row">
+                            <td class="px-4 py-3 font-bold text-indigo-700 master-code" th:text="${m.productCode}"></td>
+                            <td class="px-4 py-3 text-sm text-gray-800 font-bold master-name" th:text="${m.name}"></td>
+                            <td class="px-4 py-3 text-center text-sm font-bold text-gray-600" th:text="'¥' + ${m.price}"></td>
+                            <td class="px-4 py-3 text-center text-sm font-bold bg-gray-50" th:text="${m.orderUnit} + '個'"></td>
+                            <td class="px-4 py-3 text-center text-sm font-bold text-gray-600" th:text="${m.leadTimeDays}"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-4 text-center">
+                 <button type="button" onclick="closeAllModals()" class="px-6 py-2 bg-gray-800 text-white font-bold rounded-lg hover:bg-gray-700 shadow transition">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Page Logic -->
     <script>
+        // --- 1. Order ListView Filters ---
+        function filterOrders() {
+            var input = document.getElementById("orderSearchInput").value.toUpperCase();
+            var rows = document.querySelectorAll(".order-row");
+            var matchCount = 0;
+
+            rows.forEach(function(row) {
+                var codeText = row.querySelector(".order-number").textContent;
+                var partText = row.querySelector(".order-part").textContent;
+                if (codeText.toUpperCase().indexOf(input) > -1 || partText.toUpperCase().indexOf(input) > -1) {
+                    row.style.display = "";
+                    matchCount++;
+                } else {
+                    row.style.display = "none";
+                }
+            });
+
+            const emptyRow = document.getElementById("emptyOrderRow");
+            const noResults = document.getElementById("noOrdersResultsRow");
+            if (emptyRow === null) { 
+                noResults.style.display = (matchCount === 0 && input !== "") ? "" : "none";
+            }
+        }
+
+        // --- 2. Modals Control ---
+        const modalOverlay = document.getElementById('modalOverlay');
+        
+        function openModal(id) {
+            modalOverlay.classList.remove('hidden');
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeAllModals() {
+            modalOverlay.classList.add('hidden');
+            document.getElementById('newOrderModal').classList.add('hidden');
+            document.getElementById('editOrderModal').classList.add('hidden');
+            document.getElementById('partSearchModal').classList.add('hidden');
+        }
+
+        // --- 3. New Order Component Logic ---
         const ptInput = document.getElementById('partSearchInput');
         const ptCodeHidden = document.getElementById('selectedPartCode');
         const ptDropdown = document.getElementById('partDropdownList');
-        const items = document.querySelectorAll('.part-item');
+        const partItems = document.querySelectorAll('.part-item');
         const pPrice = document.getElementById('activePartPrice');
         const pUnit = document.getElementById('activePartUnit');
         const pLead = document.getElementById('activePartLeadTime');
@@ -111,9 +346,8 @@
         const prevUnit = document.getElementById('previewUnit');
         const prevPrice = document.getElementById('previewTotalPrice');
         const prevDateInput = document.getElementById('expectedArrivalDateInput');
-        const prevLead = document.getElementById('previewLeadTime');
         const submitBtn = document.getElementById('submitOrderBtn');
-        const orderForm = document.getElementById('orderForm');
+        const newOrderForm = document.getElementById('newOrderForm');
 
         document.addEventListener('click', function(e) {
             if (!ptInput.contains(e.target) && !ptDropdown.contains(e.target)) {
@@ -133,7 +367,7 @@
         function filterPartList() {
             const filter = ptInput.value.toLowerCase();
             let found = false;
-            items.forEach(item => {
+            partItems.forEach(item => {
                 const text = item.textContent.toLowerCase();
                 const isMatch = text.includes(filter);
                 item.style.display = isMatch ? 'block' : 'none';
@@ -167,12 +401,11 @@
                 prevUnit.textContent = "0";
                 prevPrice.textContent = "¥0";
                 prevDateInput.value = "";
-                prevLead.textContent = "0";
                 submitBtn.disabled = true;
                 return;
             }
 
-            orderForm.action = `/parts/${code}/order`;
+            newOrderForm.action = `/parts/${code}/order`;
             const totalQuantity = q * unit;
             const totalPrice = totalQuantity * price;
             
@@ -183,24 +416,90 @@
             prevUnit.textContent = unit;
             prevPrice.textContent = "¥" + totalPrice.toLocaleString();
             prevDateInput.min = expectedDateString;
-            prevDateInput.value = expectedDateString;
-            prevLead.textContent = lead;
+            // Only set default if empty to prevent overwriting user choice on quantity change
+            if(!prevDateInput.value) {
+               prevDateInput.value = expectedDateString;
+            }
 
             submitBtn.disabled = (q <= 0);
         }
 
-        // Auto-fill logic for ?preCode URL parameter (smart route from Inventory check)
+        // Auto-fill logic for ?preCode URL parameter (from Inventory)
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             const preCode = urlParams.get('preCode');
             if(preCode) {
-                items.forEach(item => {
+                partItems.forEach(item => {
                     if(item.getAttribute('data-code') === preCode) {
                         selectPart(item);
+                        openModal('newOrderModal');
                     }
                 });
             }
         };
+
+        // --- 4. Edit Order Component Logic ---
+        function openEditOrderModal(btn) {
+            const orderNo = btn.getAttribute('data-no');
+            const uCode = btn.getAttribute('data-pcode');
+            const uName = btn.getAttribute('data-pname');
+            const qtyUnitStr = btn.getAttribute('data-qty');   // This is total quantity
+            const unitStr = btn.getAttribute('data-unit');
+            const priceStr = btn.getAttribute('data-price');
+            const dateStr = btn.getAttribute('data-date');
+            const leadStr = btn.getAttribute('data-lead');
+
+            document.getElementById('editOrderNumber').value = orderNo;
+            document.getElementById('editPartText').textContent = uCode + " (" + uName + ")";
+
+            // Base details
+            const unit = parseInt(unitStr);
+            const totalQty = parseInt(qtyUnitStr);
+            const multiplier = totalQty / unit; // Reverse engineer the multiplier
+
+            document.getElementById('editUnit').value = unit;
+            document.getElementById('editPrice').value = priceStr;
+            document.getElementById('editLeadTime').value = leadStr;
+            
+            document.getElementById('editOrderQuantity').value = multiplier;
+
+            // Date processing
+            const expectedEl = document.getElementById('editExpectedDate');
+            if(dateStr) {
+                expectedEl.value = dateStr;
+            }
+            
+            // Min date based on lead time
+            const today = new Date();
+            today.setDate(today.getDate() + parseInt(leadStr));
+            expectedEl.min = today.toISOString().split('T')[0];
+
+            calcEditTotal();
+            openModal('editOrderModal');
+        }
+
+        function calcEditTotal() {
+            const q = parseInt(document.getElementById('editOrderQuantity').value) || 0;
+            const unit = parseInt(document.getElementById('editUnit').value) || 0;
+            const price = parseInt(document.getElementById('editPrice').value) || 0;
+            const total = q * unit * price;
+            document.getElementById('editTotalPrice').textContent = "¥" + total.toLocaleString();
+        }
+
+        // --- 5. Part Master Search Filter ---
+        function filterMasterTable() {
+            var input = document.getElementById("masterSearch").value.toUpperCase();
+            var rows = document.querySelectorAll(".master-row");
+            rows.forEach(function(row) {
+                var codeText = row.querySelector(".master-code").textContent;
+                var nameText = row.querySelector(".master-name").textContent;
+                if (codeText.toUpperCase().indexOf(input) > -1 || nameText.toUpperCase().indexOf(input) > -1) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+        }
     </script>
 </body>
 </html>

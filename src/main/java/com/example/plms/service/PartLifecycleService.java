@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -97,6 +98,13 @@ public class PartLifecycleService {
     public List<PurchaseOrder> getPendingOrders() {
         return orderRepository.findByStatus(OrderStatus.PENDING);
     }
+    
+    @Transactional(readOnly = true)
+    public List<PurchaseOrder> getAllPurchaseOrders() {
+        List<PurchaseOrder> orders = orderRepository.findAll();
+        orders.sort(Comparator.comparing(PurchaseOrder::getOrderDate).reversed());
+        return orders;
+    }
 
     // 1. 발주 (Order)
     public PurchaseOrder orderPart(String productCode, int quantity, String remarks, LocalDate expectedArrivalDate) {
@@ -132,6 +140,47 @@ public class PartLifecycleService {
         // 재고 마스터 업데이트: 입하 예정 수량 증가
         inventory.setPendingIncoming(inventory.getPendingIncoming() + totalQuantity);
         inventoryRepository.save(inventory);
+
+        return orderRepository.save(order);
+    }
+    
+    // 1-2. 발주 수정 (Edit Order) 제한: PENDING 상태만
+    public PurchaseOrder updateOrder(String orderNumber, int updatedQuantity, String remarks, LocalDate expectedArrivalDate) {
+        if (updatedQuantity <= 0) {
+            throw new IllegalArgumentException("발주 수량은 1개 이상이어야 합니다.");
+        }
+
+        PurchaseOrder order = orderRepository.findByOrderNumber(orderNumber)
+                .orElseThrow(() -> new IllegalArgumentException("해당 주문번호 (" + orderNumber + ")를 찾을 수 없습니다."));
+
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new IllegalStateException("입하 대기 중(PENDING)인 발주 건만 수정할 수 있습니다.");
+        }
+
+        Part part = order.getPart();
+        Inventory inventory = inventoryRepository.findByPart(part)
+                .orElseThrow(() -> new IllegalStateException("재고 정보가 없습니다."));
+
+        int originalTotalQuantity = order.getQuantity();
+        int newTotalQuantity = updatedQuantity * part.getOrderUnit();
+        int difference = newTotalQuantity - originalTotalQuantity;
+        
+        // Update Inventory pending counts
+        inventory.setPendingIncoming(inventory.getPendingIncoming() + difference);
+        if(inventory.getPendingIncoming() < 0) {
+           inventory.setPendingIncoming(0); // safeguard
+        }
+        inventoryRepository.save(inventory);
+
+        // Update Order
+        order.setQuantity(newTotalQuantity);
+        order.setRemarks(remarks);
+        
+        LocalDate minDate = LocalDate.now().plusDays(part.getLeadTimeDays());
+        if (expectedArrivalDate != null && expectedArrivalDate.isBefore(minDate)) {
+            throw new IllegalArgumentException("입하 예정일은 기본 리드타임(" + minDate + ") 이전으로 설정할 수 없습니다.");
+        }
+        order.setExpectedArrivalDate(expectedArrivalDate != null ? expectedArrivalDate : minDate);
 
         return orderRepository.save(order);
     }
