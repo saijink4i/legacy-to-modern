@@ -45,6 +45,17 @@ public class PartController {
         return "redirect:/";
     }
 
+    @PostMapping("/parts/{code}/receive")
+    public String receivePart(@PathVariable String code, @RequestParam int quantity, @RequestParam(required = false) String remarks, RedirectAttributes redirectAttributes) {
+        try {
+            partService.receivePartByCode(code, quantity, remarks);
+            redirectAttributes.addFlashAttribute("message", "부품(" + code + ") 입고 완료 (재고 반영됨)");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "입고 실패: " + e.getMessage());
+        }
+        return "redirect:/";
+    }
+
     @PostMapping("/parts/{code}/dispose")
     public String disposePart(@PathVariable String code, @RequestParam int quantity, @RequestParam(required = false) String remarks, RedirectAttributes redirectAttributes) {
         try {

@@ -53,6 +53,35 @@ public class PartLifecycleService {
         transaction.setStatus(Status.ORDERED);
         transaction.setQuantity(quantity);
         transaction.setRemarks(remarks);
+        
+        part.setIncomingQuantity(part.getIncomingQuantity() + quantity);
+        partRepository.save(part);
+
+        return transactionRepository.save(transaction);
+    }
+
+    // 2. 단건 입고 (Receive by code)
+    public PartTransaction receivePartByCode(String productCode, int quantity, String remarks) {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("입고 수량은 1개 이상이어야 합니다.");
+        }
+
+        Part part = partRepository.findByProductCode(productCode)
+                .orElseThrow(() -> new IllegalArgumentException("해당 부품 코드(" + productCode + ")를 찾을 수 없습니다."));
+
+        if (part.getIncomingQuantity() < quantity) {
+            throw new IllegalStateException("입고 수량이 입하 예정 물량보다 많습니다.");
+        }
+
+        part.setIncomingQuantity(part.getIncomingQuantity() - quantity);
+        part.setStockQuantity(part.getStockQuantity() + quantity);
+        partRepository.save(part);
+
+        PartTransaction transaction = new PartTransaction();
+        transaction.setPart(part);
+        transaction.setStatus(Status.RECEIVED);
+        transaction.setQuantity(quantity);
+        transaction.setRemarks(remarks);
 
         return transactionRepository.save(transaction);
     }

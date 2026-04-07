@@ -20,6 +20,9 @@ public class Part {
     @Column(nullable = false)
     private int stockQuantity;
 
+    @Column(nullable = false)
+    private int incomingQuantity = 0;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -46,6 +49,8 @@ public class Part {
     public void setName(String name) { this.name = name; }
     public int getStockQuantity() { return stockQuantity; }
     public void setStockQuantity(int stockQuantity) { this.stockQuantity = stockQuantity; }
+    public int getIncomingQuantity() { return incomingQuantity; }
+    public void setIncomingQuantity(int incomingQuantity) { this.incomingQuantity = incomingQuantity; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 }

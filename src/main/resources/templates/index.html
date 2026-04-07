@@ -22,7 +22,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
             <!-- New Part Registration Form -->
             <div class="bg-blue-50/50 p-6 rounded-xl border border-blue-100">
-                <h2 class="text-xl font-bold mb-4 text-gray-800">新規部品登録</h2>
+                <h2 class="text-xl font-bold mb-4 text-gray-800">新規部品登録(発注)</h2>
                 <form th:action="@{/parts}" method="post" class="space-y-4">
                     <div>
                         <label class="block text-sm font-semibold text-gray-700">部品コード</label>
@@ -64,6 +64,7 @@
                         <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">部品コード</th>
                         <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">部品名</th>
                         <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">在庫数</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">入荷予定</th>
                         <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">最新更新日</th>
                         <th class="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">アクション</th>
                     </tr>
@@ -76,12 +77,20 @@
                             <span th:text="${part.stockQuantity}" th:class="${part.stockQuantity < 10 ? 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800' : 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800'}">
                             </span>
                         </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span th:text="${part.incomingQuantity}" th:class="${part.incomingQuantity > 0 ? 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800' : 'px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800'}"></span>
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" th:text="${#temporals.format(part.updatedAt, 'yyyy-MM-dd HH:mm')}"></td>
                         <td class="px-6 py-4 whitespace-nowrap font-medium text-center space-x-2">
                             <form th:action="@{/parts/{code}/order(code=${part.productCode})}" method="post" class="inline">
                                 <input type="hidden" name="quantity" value="10">
                                 <input type="hidden" name="remarks" value="정기 발주">
-                                <button type="submit" class="text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded border border-blue-200 hover:bg-blue-100 transition">発注(+10)</button>
+                                <button type="submit" class="text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded border border-blue-200 hover:bg-blue-100 transition">再注文(+10)</button>
+                            </form>
+                            <form th:action="@{/parts/{code}/receive(code=${part.productCode})}" method="post" class="inline" th:if="${part.incomingQuantity > 0}">
+                                <input type="hidden" name="quantity" th:value="${part.incomingQuantity}">
+                                <input type="hidden" name="remarks" value="입하 대기물량 입고">
+                                <button type="submit" class="text-green-600 hover:text-green-900 bg-green-50 px-3 py-1 rounded border border-green-200 hover:bg-green-100 transition" th:text="'入庫(+' + ${part.incomingQuantity} + ')'">入庫</button>
                             </form>
                             <form th:action="@{/parts/{code}/dispose(code=${part.productCode})}" method="post" class="inline">
                                 <input type="hidden" name="quantity" value="1">
@@ -91,7 +100,7 @@
                         </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(parts)}">
-                        <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+                        <td colspan="6" class="px-6 py-8 text-center text-gray-500">
                             登録された部品がありません。上のフォームから新規登録してください。
                         </td>
                     </tr>
