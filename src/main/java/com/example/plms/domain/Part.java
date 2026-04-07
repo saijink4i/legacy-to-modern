@@ -29,7 +29,7 @@ public class Part {
     @Column(nullable = false, columnDefinition = "integer default 1")
     private int orderUnit = 1;
 
-    @Column(nullable = false, length = 8)
+    @Column(nullable = false, length = 8, columnDefinition = "varchar(8) default '99999999'")
     private String expirationDate = "99999999";
 
     @Column(nullable = false, columnDefinition = "integer default 0")
