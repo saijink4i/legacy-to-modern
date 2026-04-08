@@ -127,14 +127,15 @@ public class PartController {
     @GetMapping("/order")
     public String orderPage(Model model) {
         model.addAttribute("allMasterParts", partService.getAllParts());
+        model.addAttribute("allSuppliers", partService.getAllSuppliers());
         model.addAttribute("orders", partService.getAllPurchaseOrders());
         return "order";
     }
 
     @PostMapping("/parts/{code}/order")
-    public String orderPart(@PathVariable String code, @RequestParam int quantity, @RequestParam(required = false) String remarks, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate expectedArrivalDate, RedirectAttributes redirectAttributes) {
+    public String orderPart(@PathVariable String code, @RequestParam int quantity, @RequestParam(required = false) String remarks, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate expectedArrivalDate, @RequestParam(required = false) Long supplierId, RedirectAttributes redirectAttributes) {
         try {
-            PurchaseOrder order = partService.orderPart(code, quantity, remarks, expectedArrivalDate);
+            PurchaseOrder order = partService.orderPart(code, quantity, remarks, expectedArrivalDate, supplierId);
             redirectAttributes.addFlashAttribute("message", "部品発注が成功的に登録されました。(発注No: " + order.getOrderNumber() + ")");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "発注失敗: " + e.getMessage());
@@ -143,9 +144,9 @@ public class PartController {
     }
     
     @PostMapping("/order/update")
-    public String updateOrder(@RequestParam String orderNumber, @RequestParam int quantity, @RequestParam(required = false) String remarks, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate expectedArrivalDate, RedirectAttributes redirectAttributes) {
+    public String updateOrder(@RequestParam String orderNumber, @RequestParam int quantity, @RequestParam(required = false) String remarks, @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate expectedArrivalDate, @RequestParam(required = false) Long supplierId, RedirectAttributes redirectAttributes) {
         try {
-            PurchaseOrder order = partService.updateOrder(orderNumber, quantity, remarks, expectedArrivalDate);
+            PurchaseOrder order = partService.updateOrder(orderNumber, quantity, remarks, expectedArrivalDate, supplierId);
             redirectAttributes.addFlashAttribute("message", "発注No [" + order.getOrderNumber() + "] が成功的に修正されました。");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "発注修正失敗: " + e.getMessage());

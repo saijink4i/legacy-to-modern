@@ -44,6 +44,9 @@ public class PartLifecycleService {
         if (part.getOrderUnit() <= 0) {
             throw new IllegalArgumentException("발주 단위 수량은 1 이상이어야 합니다.");
         }
+        if (part.getExpirationDate() == null || part.getExpirationDate().trim().isEmpty()) {
+            part.setExpirationDate("9999999");
+        }
         Part savedPart = partRepository.save(part);
         
         // 부품 마스터 생성 시 자동으로 재고 마스터도 생성
@@ -89,7 +92,13 @@ public class PartLifecycleService {
         
         part.setPrice(price);
         part.setOrderUnit(orderUnit);
-        part.setExpirationDate(expirationDate);
+        
+        if (expirationDate == null || expirationDate.trim().isEmpty()) {
+            part.setExpirationDate("9999999");
+        } else {
+            part.setExpirationDate(expirationDate);
+        }
+        
         part.setLeadTimeDays(leadTimeDays);
         return partRepository.save(part);
     }
@@ -123,7 +132,7 @@ public class PartLifecycleService {
     }
 
     // 1. 발주 (Order)
-    public PurchaseOrder orderPart(String productCode, int quantity, String remarks, LocalDate expectedArrivalDate) {
+    public PurchaseOrder orderPart(String productCode, int quantity, String remarks, LocalDate expectedArrivalDate, Long supplierId) {
         if (quantity <= 0) {
             throw new IllegalArgumentException("발주 수량은 1개 이상이어야 합니다.");
         }
@@ -161,7 +170,7 @@ public class PartLifecycleService {
     }
     
     // 1-2. 발주 수정 (Edit Order) 제한: PENDING 상태만
-    public PurchaseOrder updateOrder(String orderNumber, int updatedQuantity, String remarks, LocalDate expectedArrivalDate) {
+    public PurchaseOrder updateOrder(String orderNumber, int updatedQuantity, String remarks, LocalDate expectedArrivalDate, Long supplierId) {
         if (updatedQuantity <= 0) {
             throw new IllegalArgumentException("발주 수량은 1개 이상이어야 합니다.");
         }
@@ -191,6 +200,12 @@ public class PartLifecycleService {
         // Update Order
         order.setQuantity(newTotalQuantity);
         order.setRemarks(remarks);
+        
+        if (supplierId != null) {
+            supplierRepository.findById(supplierId).ifPresent(order::setSupplier);
+        } else {
+            order.setSupplier(null);
+        }
         
         LocalDate minDate = LocalDate.now().plusDays(part.getLeadTimeDays());
         if (expectedArrivalDate != null && expectedArrivalDate.isBefore(minDate)) {
