@@ -32,7 +32,8 @@ public class PdfGeneratorService {
 
         // Load Font
         ClassPathResource fontResource = new ClassPathResource("NotoSansJP.ttf");
-        BaseFont bf = BaseFont.createFont(fontResource.getFile().getAbsolutePath(), BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+        byte[] fontBytes = fontResource.getInputStream().readAllBytes();
+        BaseFont bf = BaseFont.createFont("NotoSansJP.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED, true, fontBytes, null);
         Font titleFont = new Font(bf, 18, Font.BOLD, Color.BLACK);
         Font headerFont = new Font(bf, 12, Font.BOLD, Color.DARK_GRAY);
         Font normalFont = new Font(bf, 10, Font.NORMAL, Color.BLACK);

@@ -79,6 +79,11 @@ public class PartLifecycleService {
         return supplierRepository.save(supplier);
     }
     
+    // 거래처 삭제
+    public void deleteSupplier(Long id) {
+        supplierRepository.deleteById(id);
+    }
+    
     // 부품 마스터 업데이트
     public Part updatePartMaster(String productCode, int price, int orderUnit, String expirationDate, int leadTimeDays) {
         if (price < 0) {

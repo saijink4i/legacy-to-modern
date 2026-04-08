@@ -22,12 +22,11 @@ import java.util.zip.ZipOutputStream;
 public class PartController {
 
     private final PartLifecycleService partService;
+    private final com.example.plms.service.PdfGeneratorService pdfGeneratorService;
 
-    @Autowired
-    private com.example.plms.service.PdfGeneratorService pdfGeneratorService;
-
-    public PartController(PartLifecycleService partService) {
+    public PartController(PartLifecycleService partService, com.example.plms.service.PdfGeneratorService pdfGeneratorService) {
         this.partService = partService;
+        this.pdfGeneratorService = pdfGeneratorService;
     }
 
     // 0. Landing Page (Portal View)
