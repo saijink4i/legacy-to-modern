@@ -26,7 +26,7 @@ public class PurchaseOrder {
     @Column(nullable = false)
     private int quantity;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "integer default 0")
     private int receivedQuantity = 0;
 
     @Enumerated(EnumType.STRING)
