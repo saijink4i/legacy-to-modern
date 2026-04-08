@@ -10,15 +10,21 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.format.annotation.DateTimeFormat;
 
+import jakarta.servlet.http.HttpServletResponse;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.zip.ZipOutputStream;
 
 @Controller
 public class PartController {
 
     private final PartLifecycleService partService;
+
+    @Autowired
+    private com.example.plms.service.PdfGeneratorService pdfGeneratorService;
 
     public PartController(PartLifecycleService partService) {
         this.partService = partService;
@@ -177,5 +183,77 @@ public class PartController {
             redirectAttributes.addFlashAttribute("error", "폐기 실패: " + e.getMessage());
         }
         return "redirect:/";
+    }
+
+    // 7. 거래처 (Supplier) 단일 삭제 (Delete)
+    @PostMapping("/master/supplier/delete")
+    public String deleteSupplierMaster(@RequestParam Long id, RedirectAttributes redirectAttributes) {
+        try {
+            partService.deleteSupplier(id);
+            redirectAttributes.addFlashAttribute("message", "取引先マスターが削除されました。");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "削除失敗: " + e.getMessage());
+        }
+        return "redirect:/master";
+    }
+
+    // 8. 계상 (Accounting) View
+    @GetMapping("/accounting")
+    public String accountingView(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
+            Model model) {
+            
+        LocalDate start;
+        LocalDate end;
+        
+        if (startDate == null || endDate == null) {
+            LocalDate today = LocalDate.now();
+            start = today.withDayOfMonth(1);
+            end = today.withDayOfMonth(today.lengthOfMonth());
+        } else {
+            start = LocalDate.parse(startDate);
+            end = LocalDate.parse(endDate);
+        }
+
+        List<com.example.plms.domain.ReceiptLog> receipts = partService.getReceiptsBetween(start, end);
+
+        // Group explicitly for View presentation
+        Map<com.example.plms.domain.Supplier, Long> summary = receipts.stream()
+            .collect(Collectors.groupingBy(
+                r -> r.getOrder().getSupplier() == null ? new com.example.plms.domain.Supplier() : r.getOrder().getSupplier(),
+                Collectors.summingLong(r -> (long) r.getReceivedQuantity() * r.getOrder().getPart().getPrice())
+            ));
+
+        model.addAttribute("startDate", start);
+        model.addAttribute("endDate", end);
+        model.addAttribute("receipts", receipts);
+        model.addAttribute("summary", summary);
+        
+        return "accounting";
+    }
+
+    // 9. 계상 (Accounting) PDF Zip Download
+    @GetMapping("/accounting/export-zip")
+    public void exportAccountingZip(
+            @RequestParam String startDate,
+            @RequestParam String endDate,
+            HttpServletResponse response) {
+        try {
+            LocalDate start = LocalDate.parse(startDate);
+            LocalDate end = LocalDate.parse(endDate);
+            List<com.example.plms.domain.ReceiptLog> logs = partService.getReceiptsBetween(start, end);
+
+            response.setContentType("application/zip");
+            response.setHeader("Content-Disposition", "attachment; filename=\"Settlements_" + startDate + "_to_" + endDate + ".zip\"");
+
+            ZipOutputStream zos = new ZipOutputStream(response.getOutputStream());
+            pdfGeneratorService.generateSupplierSettlementZip(logs, start, end, zos);
+            zos.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.setStatus(500);
+        }
     }
 }

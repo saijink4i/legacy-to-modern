@@ -136,6 +136,14 @@ public class PartLifecycleService {
         return receiptRepository.findAllByOrderByReceiveDateDesc();
     }
 
+    @Transactional(readOnly = true)
+    public List<ReceiptLog> getReceiptsBetween(LocalDate start, LocalDate end) {
+        return receiptRepository.findByReceiveDateBetweenOrderByReceiveDateDesc(
+            start.atStartOfDay(),
+            end.atTime(23, 59, 59)
+        );
+    }
+
     // 1. 발주 (Order)
     public PurchaseOrder orderPart(String productCode, int quantity, String remarks, LocalDate expectedArrivalDate, Long supplierId) {
         if (quantity <= 0) {

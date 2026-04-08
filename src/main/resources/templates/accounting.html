@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLMS - 計上 (Accounting)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen">
+
+    <!-- Render Global Navbar -->
+    <div th:replace="~{fragments/nav :: navbar('accounting')}"></div>
+
+    <div class="max-w-7xl mx-auto py-8 px-4">
+        
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row justify-between items-end mb-8 gap-4 border-b pb-6">
+            <div>
+                <h1 class="text-3xl font-extrabold text-blue-800 tracking-wider">📊 計上・精算管理</h1>
+                <p class="text-sm text-gray-500 mt-2">指定された期間内の入庫(納品)データを集計し、取引先別の精算書を発行します。</p>
+            </div>
+            <div class="flex items-center gap-3 bg-white p-2 rounded-xl shadow-sm border border-gray-200">
+                <form action="/accounting" method="get" id="dateForm" class="flex items-center gap-2">
+                    <div class="flex flex-col">
+                        <label class="text-[10px] text-gray-500 font-bold uppercase pl-1">開始日 (Start)</label>
+                        <input type="date" id="startDate" name="startDate" th:value="${startDate}" required onchange="snapEndDateToMonth()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 font-bold cursor-pointer">
+                    </div>
+                    <span class="text-gray-400 font-bold mt-4">〜</span>
+                    <div class="flex flex-col">
+                        <label class="text-[10px] text-gray-500 font-bold uppercase pl-1">終了日 (End)</label>
+                        <input type="date" id="endDate" name="endDate" th:value="${endDate}" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 font-bold cursor-pointer">
+                    </div>
+                    <button type="submit" class="mt-4 bg-gray-800 hover:bg-gray-900 text-white font-bold py-2.5 px-4 rounded-lg shadow-sm transition">
+                        検索
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Sidebar: Summary & Export -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- Export Box -->
+                <div class="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-2xl shadow-xl p-6 text-white text-center flex flex-col items-center justify-center">
+                    <h2 class="text-lg font-black tracking-widest mb-2 opacity-90">精算書一括発行 (PDF Export)</h2>
+                    <p class="text-xs text-indigo-200 mb-6 font-medium">現在表示中の期間について、取引先ごとに個別のPDF精算書を生成し、ZIP形式でダウンロードします。</p>
+                    
+                    <!-- Dynamic Download Link directly passing current form bounds -->
+                    <a th:href="@{/accounting/export-zip(startDate=${startDate}, endDate=${endDate})}" 
+                       class="w-full bg-white text-indigo-700 hover:bg-indigo-50 font-extrabold text-lg py-4 px-6 rounded-xl shadow-lg transition flex items-center justify-center gap-2 transform hover:scale-105">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        ZIP ダウンロード
+                    </a>
+                </div>
+
+                <!-- Supplier Totals -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-sm font-black text-gray-800 uppercase tracking-wider mb-4 border-b pb-2">🏢 取引先別 合計金額</h3>
+                    <ul class="space-y-3">
+                        <li th:each="entry : ${summary}" class="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-100">
+                            <div class="flex items-center gap-2">
+                                <span class="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-0.5 rounded" th:text="${entry.key.supplierCode != null ? entry.key.supplierCode : 'NONE'}"></span>
+                                <span class="font-bold text-gray-700 text-sm" th:text="${entry.key.name != null ? entry.key.name : '未指定'}"></span>
+                            </div>
+                            <span class="font-extrabold text-gray-900" th:text="'¥ ' + ${#numbers.formatInteger(entry.value, 0, 'COMMA')}"></span>
+                        </li>
+                        <li th:if="${#maps.isEmpty(summary)}" class="text-center py-4 text-sm font-bold text-gray-400">
+                            該当データなし
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Main Log Table -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="p-4 bg-gray-50 border-b flex justify-between items-center">
+                        <h3 class="font-bold text-gray-700">対象入庫履歴 (Receipt Logs)</h3>
+                        <span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full" th:text="'総件数: ' + ${receipts.size()} + '件'"></span>
+                    </div>
+                    <div class="overflow-x-auto max-h-[600px]">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-white sticky top-0 shadow-sm z-10">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-black text-gray-500 uppercase tracking-wider">入庫日時</th>
+                                    <th class="px-6 py-3 text-left text-xs font-black text-gray-500 uppercase tracking-wider">対象部品 / 注文No</th>
+                                    <th class="px-6 py-3 text-left text-xs font-black text-gray-500 uppercase tracking-wider">取引先</th>
+                                    <th class="px-6 py-3 text-right text-xs font-black text-gray-500 uppercase tracking-wider">数量</th>
+                                    <th class="px-6 py-3 text-right text-xs font-black text-gray-500 uppercase tracking-wider">単価</th>
+                                    <th class="px-6 py-3 text-right text-xs font-black text-blue-600 uppercase tracking-wider">計(円)</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-100">
+                                <tr th:each="r : ${receipts}" class="hover:bg-indigo-50/50 transition">
+                                    <td class="px-6 py-3 text-sm text-gray-600 font-mono" th:text="${#temporals.format(r.receiveDate, 'MM-dd HH:mm')}"></td>
+                                    <td class="px-6 py-3">
+                                        <div class="font-bold text-gray-800 text-sm" th:text="${r.order.part.name}"></div>
+                                        <div class="text-xs text-indigo-500 font-mono" th:text="${r.order.orderNumber}"></div>
+                                    </td>
+                                    <td class="px-6 py-3 text-sm font-bold text-gray-600" th:text="${r.order.supplier != null ? r.order.supplier.name : '-'}"></td>
+                                    <td class="px-6 py-3 text-sm font-bold text-green-600 text-right" th:text="${r.receivedQuantity}"></td>
+                                    <td class="px-6 py-3 text-sm font-medium text-gray-500 text-right" th:text="${#numbers.formatInteger(r.order.part.price, 0, 'COMMA')}"></td>
+                                    <td class="px-6 py-3 text-sm font-extrabold text-blue-700 text-right" th:text="${#numbers.formatInteger(r.receivedQuantity * r.order.part.price, 0, 'COMMA')}"></td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(receipts)}">
+                                    <td colspan="6" class="px-6 py-16 text-center text-gray-400 font-bold border-dashed border-2 border-gray-100 m-4 rounded">
+                                        指定された期間内に入庫データが存在しません。
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Logic for Auto-snap EndDate -->
+    <script>
+        function snapEndDateToMonth() {
+            const startInput = document.getElementById('startDate');
+            const endInput = document.getElementById('endDate');
+            
+            if (startInput.value) {
+                const dateVal = new Date(startInput.value);
+                // Create a date pointing to the exact last day of that month
+                const lastDay = new Date(dateVal.getFullYear(), dateVal.getMonth() + 1, 0);
+                
+                // Format nicely to YYYY-MM-DD
+                // To avoid timezone offsets messing up local date formats, manual slice works best.
+                const year = lastDay.getFullYear();
+                const month = String(lastDay.getMonth() + 1).padStart(2, '0');
+                const day = String(lastDay.getDate()).padStart(2, '0');
+                
+                endInput.value = `${year}-${month}-${day}`;
+            }
+        }
+    </script>
+</body>
+</html>

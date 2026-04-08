@@ -7,4 +7,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ReceiptLogRepository extends JpaRepository<ReceiptLog, Long> {
     java.util.List<ReceiptLog> findAllByOrderByReceiveDateDesc();
+    
+    java.util.List<ReceiptLog> findByReceiveDateBetweenOrderByReceiveDateDesc(java.time.LocalDateTime start, java.time.LocalDateTime end);
 }
