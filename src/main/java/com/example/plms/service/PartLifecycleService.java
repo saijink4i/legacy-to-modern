@@ -60,6 +60,22 @@ public class PartLifecycleService {
         return supplierRepository.save(supplier);
     }
     
+    // 거래처 전체 조회
+    @Transactional(readOnly = true)
+    public List<Supplier> getAllSuppliers() {
+        return supplierRepository.findAll();
+    }
+    
+    // 거래처 업데이트
+    public Supplier updateSupplier(Long id, String supplierCode, String name, String contactInfo) {
+        Supplier supplier = supplierRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("해당 거래처를 찾을 수 없습니다."));
+        supplier.setSupplierCode(supplierCode);
+        supplier.setName(name);
+        supplier.setContactInfo(contactInfo);
+        return supplierRepository.save(supplier);
+    }
+    
     // 부품 마스터 업데이트
     public Part updatePartMaster(String productCode, int price, int orderUnit, String expirationDate, int leadTimeDays) {
         if (price < 0) {

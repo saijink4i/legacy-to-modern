@@ -73,6 +73,7 @@ public class PartController {
     @GetMapping("/master")
     public String partMaster(Model model) {
         model.addAttribute("parts", partService.getAllParts());
+        model.addAttribute("suppliers", partService.getAllSuppliers());
         return "part-master";
     }
 
@@ -94,6 +95,30 @@ public class PartController {
             redirectAttributes.addFlashAttribute("message", "部品マスタ(" + productCode + ")が修正されました。");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "部品マスタ修正失敗: " + e.getMessage());
+        }
+        return "redirect:/master";
+    }
+    
+    @PostMapping("/master/supplier/register")
+    public String registerSupplier(@ModelAttribute com.example.plms.domain.Supplier supplier, RedirectAttributes redirectAttributes) {
+        try {
+            partService.registerSupplier(supplier);
+            redirectAttributes.addFlashAttribute("message", "取引先マスタ(" + supplier.getSupplierCode() + ")が新規登録されました。");
+            redirectAttributes.addFlashAttribute("activeTab", "supplier");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "取引先登録失敗: " + e.getMessage());
+        }
+        return "redirect:/master";
+    }
+
+    @PostMapping("/master/supplier/update")
+    public String updateSupplier(@RequestParam Long id, @RequestParam String supplierCode, @RequestParam String name, @RequestParam String contactInfo, RedirectAttributes redirectAttributes) {
+        try {
+            partService.updateSupplier(id, supplierCode, name, contactInfo);
+            redirectAttributes.addFlashAttribute("message", "取引先マスタ(" + supplierCode + ")が修正されました。");
+            redirectAttributes.addFlashAttribute("activeTab", "supplier");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "取引先修正失敗: " + e.getMessage());
         }
         return "redirect:/master";
     }

@@ -3,253 +3,313 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PLMS - 部品マスター管理</title>
+    <title>PLMS - マスター管理 (Master Data)</title>
     <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-50 text-gray-800 font-sans p-8">
-    <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-lg border border-gray-100 p-8">
-    <!-- Render Global Navbar -->
-    <div th:replace="~{fragments/nav :: navbar('master')}"></div>
-
-    <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-lg border border-gray-100 p-8 mt-8">
-
-        <h1 class="text-3xl font-extrabold mb-8 text-blue-700">⚙️部品マスターデータ更新</h1>
-        
-        <!-- Alerts -->
-        <div th:if="${message}" class="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-r-md shadow-sm" role="alert">
-            <p th:text="${message}" class="font-medium"></p>
-        </div>
-        <div th:if="${error}" class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-r-md shadow-sm" role="alert">
-            <p th:text="${error}" class="font-medium"></p>
-        </div>
-
-        <!-- Top Actions: Search and Add Button -->
-        <div class="flex flex-col md:flex-row justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-200 mb-6 gap-4">
-            <div class="relative w-full md:w-1/2">
-                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <svg aria-hidden="true" class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                </div>
-                <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="コード、部品名でマスター検索..." class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5 shadow-sm">
-            </div>
-            <button onclick="openAddModal()" class="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-6 rounded-lg transition duration-150 shadow-sm flex items-center justify-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
-                </svg>
-                新規部品登録
-            </button>
-        </div>
-
-        <!-- Master List Table -->
-        <h2 class="text-xl font-bold mb-4 text-gray-800">登録済みマスターデータ一覧</h2>
-        
-        <div class="overflow-x-auto bg-white rounded-lg border border-gray-200 shadow-sm">
-            <table class="min-w-full divide-y divide-gray-200" id="partsTable">
-                <thead class="bg-gray-100">
-                    <tr>
-                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">コード/部品名</th>
-                        <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">価格</th>
-                        <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">注文単位(N個)</th>
-                        <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">有効期限</th>
-                        <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">リードタイム(日)</th>
-                        <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">編集</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200">
-                    <tr th:each="part : ${parts}" class="hover:bg-gray-50 transition part-row">
-                        <td class="px-6 py-4">
-                            <div class="text-sm font-bold text-gray-900 part-code" th:text="${part.productCode}"></div>
-                            <div class="text-xs text-gray-500 part-name" th:text="${part.name}"></div>
-                        </td>
-                        <td class="px-6 py-4 text-center font-medium text-gray-900" th:text="${part.price}"></td>
-                        <td class="px-6 py-4 text-center font-medium text-gray-900" th:text="${part.orderUnit}"></td>
-                        <td class="px-6 py-4 text-center font-medium text-gray-900" th:text="${part.expirationDate == '99999999' ? '無期限' : part.expirationDate}"></td>
-                        <td class="px-6 py-4 text-center font-medium text-gray-900" th:text="${part.leadTimeDays}"></td>
-                        <td class="px-6 py-4 text-center">
-                            <button th:data-code="${part.productCode}"
-                                    th:data-name="${part.name}"
-                                    th:data-price="${part.price}"
-                                    th:data-unit="${part.orderUnit}"
-                                    th:data-exp="${part.expirationDate}"
-                                    th:data-lead="${part.leadTimeDays}"
-                                    onclick="openEditModal(this.getAttribute('data-code'), this.getAttribute('data-name'), this.getAttribute('data-price'), this.getAttribute('data-unit'), this.getAttribute('data-exp'), this.getAttribute('data-lead'))" 
-                                    class="text-blue-600 hover:text-white border border-blue-600 hover:bg-blue-600 px-4 py-1.5 rounded transition text-xs font-bold">
-                                編集
-                            </button>
-                        </td>
-                    </tr>
-                    <tr th:if="${#lists.isEmpty(parts)}" id="emptyRow">
-                        <td colspan="5" class="px-6 py-10 text-center text-gray-500">
-                            データがありません。右上の新規登録ボタンから作成してください。
-                        </td>
-                    </tr>
-                    <tr id="noResultsRow" style="display: none;">
-                        <td colspan="5" class="px-6 py-10 text-center text-gray-500">
-                            検索結果が見つかりませんでした。
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-    </div>
-
-    <!-- Modals Background/Overlay -->
-    <div id="modalOverlay" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-40 hidden transition-opacity" onclick="closeModals()"></div>
-
-    <!-- Add Part Modal -->
-    <div id="addModal" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-xl shadow-2xl z-50 hidden" role="dialog">
-        <div class="flex justify-between items-center border-b p-5">
-            <h2 class="text-xl font-bold text-gray-800">新規部品マスター登録</h2>
-            <button onclick="closeModals()" class="text-gray-400 hover:text-gray-600 transition">
-                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-        </div>
-        <div class="p-6">
-            <form th:action="@{/master/register}" method="post" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700">部品コード</label>
-                    <input type="text" name="productCode" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700">部品名</label>
-                    <input type="text" name="name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700">初期在庫数</label>
-                        <input type="number" name="stockQuantity" value="0" min="0" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700">価格</label>
-                        <input type="number" name="price" value="100" min="1" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700">注文単位数</label>
-                        <input type="number" name="orderUnit" value="1" min="1" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700">有効期限 (YYYYMMDD)</label>
-                        <input type="text" name="expirationDate" value="99999999" pattern="\d{8}" maxlength="8" title="YYYYMMDD形式または99999999" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700">リードタイム(日)</label>
-                    <input type="number" name="leadTimeDays" value="7" min="0" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div class="mt-6 flex justify-end space-x-3">
-                    <button type="button" onclick="closeModals()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">キャンセル</button>
-                    <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition">登録する</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Edit Part Modal -->
-    <div id="editModal" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-xl shadow-2xl z-50 hidden" role="dialog">
-        <div class="flex justify-between items-center border-b p-5">
-            <h2 class="text-xl font-bold text-gray-800">マスターデータ編集</h2>
-            <button onclick="closeModals()" class="text-gray-400 hover:text-gray-600 transition">
-                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-        </div>
-        <div class="p-6">
-            <form th:action="@{/master/update}" method="post" class="space-y-4">
-                <input type="hidden" name="productCode" id="editProductCode">
-                
-                <div class="bg-gray-50 p-4 rounded-lg mb-4 border">
-                    <p class="text-sm text-gray-500">部品コード</p>
-                    <p class="font-bold text-gray-900 text-lg" id="displayProductCode"></p>
-                    <p class="text-sm text-gray-600 mt-1" id="displayProductName"></p>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700">価格</label>
-                    <input type="number" id="editPrice" name="price" required min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700">注文単位数</label>
-                        <input type="number" id="editOrderUnit" name="orderUnit" required min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700">有効期限 (YYYYMMDD)</label>
-                        <input type="text" id="editExpirationDate" name="expirationDate" pattern="\d{8}" maxlength="8" title="YYYYMMDD形式または99999999" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700">リードタイム(日)</label>
-                    <input type="number" id="editLeadTimeDays" name="leadTimeDays" required min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div class="mt-6 flex justify-end space-x-3">
-                    <button type="button" onclick="closeModals()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">キャンセル</button>
-                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition">更新する</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- JavaScript logic -->
     <script>
-        function filterTable() {
-            var input = document.getElementById("searchInput");
-            var filter = input.value.toUpperCase();
-            var rows = document.querySelectorAll(".part-row");
-            var noResultsRow = document.getElementById("noResultsRow");
-            var emptyRow = document.getElementById("emptyRow");
-            
-            var matchCount = 0;
-
-            rows.forEach(function(row) {
-                var codeText = row.querySelector(".part-code").textContent;
-                var nameText = row.querySelector(".part-name").textContent;
-                if (codeText.toUpperCase().indexOf(filter) > -1 || nameText.toUpperCase().indexOf(filter) > -1) {
-                    row.style.display = "";
-                    matchCount++;
-                } else {
-                    row.style.display = "none";
-                }
+        function switchTab(tabId) {
+            // Hide all panes
+            document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+            // Remove active style from all tabs
+            document.querySelectorAll('.master-tab').forEach(el => {
+                el.classList.remove('border-indigo-500', 'text-indigo-600');
+                el.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
             });
 
-            // Handle empty/no results UI states
-            if (emptyRow === null) { 
-                if (matchCount === 0 && filter !== "") {
-                    noResultsRow.style.display = "";
-                } else {
-                    noResultsRow.style.display = "none";
-                }
+            // Show selected pane
+            document.getElementById(tabId).classList.remove('hidden');
+            
+            // Highlight selected tab
+            const activeTab = document.getElementById(tabId + '-btn');
+            if (activeTab) {
+                activeTab.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+                activeTab.classList.add('border-indigo-500', 'text-indigo-600');
             }
         }
 
-        const modalOverlay = document.getElementById('modalOverlay');
-        const addModal = document.getElementById('addModal');
-        const editModal = document.getElementById('editModal');
-
-        function openAddModal() {
-            modalOverlay.classList.remove('hidden');
-            addModal.classList.remove('hidden');
-        }
-
-        function openEditModal(code, name, price, orderUnit, expirationDate, leadTimeDays) {
-            document.getElementById('editProductCode').value = code;
-            document.getElementById('displayProductCode').textContent = code;
-            document.getElementById('displayProductName').textContent = name;
-            document.getElementById('editPrice').value = price;
-            document.getElementById('editOrderUnit').value = orderUnit;
-            document.getElementById('editExpirationDate').value = expirationDate;
-            document.getElementById('editLeadTimeDays').value = leadTimeDays;
+        function editPartMaster(btn) {
+            document.getElementById('partActionTitle').innerText = '部品マスター修正';
+            document.getElementById('partSubmitBtn').innerText = '修正適用';
             
-            modalOverlay.classList.remove('hidden');
-            editModal.classList.remove('hidden');
+            // Change form action to Update
+            const form = document.getElementById('partMasterForm');
+            form.action = '/master/update';
+            
+            // Populate fields
+            document.getElementById('partInputCode').value = btn.getAttribute('data-code');
+            document.getElementById('partInputCode').readOnly = true; // Cannot alter PK easily
+            document.getElementById('partInputName').value = btn.getAttribute('data-name');
+            document.getElementById('partInputName').readOnly = true; 
+            
+            document.getElementById('partInputStock').value = '0';
+            document.getElementById('partInputStockGroup').style.display = 'none'; // hide stock for update
+            
+            document.getElementById('partInputPrice').value = btn.getAttribute('data-price');
+            document.getElementById('partInputUnit').value = btn.getAttribute('data-unit');
+            document.getElementById('partInputDate').value = btn.getAttribute('data-date');
+            document.getElementById('partInputLead').value = btn.getAttribute('data-lead');
+            
+            document.getElementById('partCancelBtn').classList.remove('hidden');
+            window.scrollTo({top: 0, behavior: 'smooth'});
         }
 
-        function closeModals() {
-            modalOverlay.classList.add('hidden');
-            addModal.classList.add('hidden');
-            editModal.classList.add('hidden');
+        function resetPartForm() {
+            document.getElementById('partActionTitle').innerText = '新規部品マスタ登録';
+            document.getElementById('partSubmitBtn').innerText = 'マスタ登録';
+            
+            const form = document.getElementById('partMasterForm');
+            form.action = '/master/register';
+            form.reset();
+            
+            document.getElementById('partInputCode').readOnly = false;
+            document.getElementById('partInputName').readOnly = false;
+            document.getElementById('partInputStockGroup').style.display = 'block';
+            
+            document.getElementById('partCancelBtn').classList.add('hidden');
+        }
+
+        // Supplier Edit logic
+        function editSupplierMaster(btn) {
+            document.getElementById('supActionTitle').innerText = '取引先情報修正';
+            document.getElementById('supSubmitBtn').innerText = '修正適用';
+            
+            const form = document.getElementById('supplierMasterForm');
+            form.action = '/master/supplier/update';
+            
+            document.getElementById('supInputId').value = btn.getAttribute('data-id');
+            document.getElementById('supInputCode').value = btn.getAttribute('data-code');
+            document.getElementById('supInputName').value = btn.getAttribute('data-name');
+            document.getElementById('supInputContact').value = btn.getAttribute('data-contact');
+            
+            document.getElementById('supCancelBtn').classList.remove('hidden');
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        }
+
+        function resetSupplierForm() {
+            document.getElementById('supActionTitle').innerText = '取引先新規登録';
+            document.getElementById('supSubmitBtn').innerText = '取引先登録';
+            
+            const form = document.getElementById('supplierMasterForm');
+            form.action = '/master/supplier/register';
+            form.reset();
+            
+            document.getElementById('supInputId').value = '';
+            document.getElementById('supCancelBtn').classList.add('hidden');
+        }
+
+        window.onload = function() {
+            const activeTabFlash = document.querySelector('meta[name="activeTab"]')?.getAttribute('content');
+            if (activeTabFlash === 'supplier') {
+                switchTab('supplier-pane');
+            } else {
+                switchTab('part-pane');
+            }
         }
     </script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen">
+    <!-- Meta tag for tracking flash attribute activeTab -->
+    <meta name="activeTab" th:content="${activeTab != null ? activeTab : 'part'}" />
+
+    <!-- Render Global Navbar -->
+    <div th:replace="~{fragments/nav :: navbar('master')}"></div>
+
+    <div class="max-w-7xl mx-auto py-8 px-4">
+        
+        <!-- Header & Tabs -->
+        <div class="border-b border-gray-200 mb-8 pb-4 flex flex-col md:flex-row justify-between items-end gap-4">
+            <div>
+                <h1 class="text-3xl font-extrabold text-blue-700">⚙️ マスター管理</h1>
+                <p class="text-sm text-gray-500 mt-1">システム全体の基本データベース（部品・取引先）を管理합니다。</p>
+            </div>
+            
+            <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                <button onclick="switchTab('part-pane')" id="part-pane-btn" class="master-tab border-indigo-500 text-indigo-600 whitespace-nowrap py-4 px-1 border-b-2 font-bold text-lg flex items-center gap-2 transition">
+                    <span>📦</span> 部品マスター
+                </button>
+                <button onclick="switchTab('supplier-pane')" id="supplier-pane-btn" class="master-tab border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-bold text-lg flex items-center gap-2 transition">
+                    <span>🏢</span> 取引先マスター
+                </button>
+            </nav>
+        </div>
+
+        <div th:if="${message}" class="bg-green-50 border-l-4 border-green-500 text-green-700 p-4 mb-6 shadow-sm font-bold rounded-r">
+            <p th:text="${message}"></p>
+        </div>
+        <div th:if="${error}" class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 shadow-sm font-bold rounded-r">
+            <p th:text="${error}"></p>
+        </div>
+
+        <!-- 1. Part Master Pane -->
+        <div id="part-pane" class="tab-pane">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Registration Form block -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6 sticky top-24">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 id="partActionTitle" class="text-xl font-extrabold text-indigo-800">新規部品マスタ登録</h2>
+                            <button type="button" id="partCancelBtn" onclick="resetPartForm()" class="hidden text-sm text-gray-500 hover:text-indigo-600 font-bold underline transition">登録へ戻る</button>
+                        </div>
+                        <form action="/master/register" method="post" id="partMasterForm">
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-1">部品コード (Part Code)</label>
+                                    <input type="text" name="productCode" id="partInputCode" required class="block w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 font-mono font-bold bg-gray-50 read-only:bg-gray-200 transition">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-1">名称 (Name)</label>
+                                    <input type="text" name="name" id="partInputName" required class="block w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 font-bold read-only:bg-gray-200 transition">
+                                </div>
+                                <div id="partInputStockGroup">
+                                    <label class="block text-sm font-bold text-gray-700 mb-1">初期在庫 (Initial Stock)</label>
+                                    <input type="number" name="stockQuantity" id="partInputStock" value="0" min="0" required class="block w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 font-bold text-gray-600 bg-green-50">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-1">単価 (Price ¥)</label>
+                                    <input type="number" name="price" id="partInputPrice" min="0" required class="block w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 font-bold">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-1">発注単位 (Order Unit)</label>
+                                    <input type="number" name="orderUnit" id="partInputUnit" min="1" required class="block w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 font-bold">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-1">標準納期 LeadTime(日)</label>
+                                    <input type="number" name="leadTimeDays" id="partInputLead" min="1" value="7" required class="block w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 font-bold">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-1">賞味期限/耐久(任意)</label>
+                                    <input type="text" name="expirationDate" id="partInputDate" class="block w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                                <button type="submit" id="partSubmitBtn" class="w-full bg-indigo-600 text-white font-extrabold py-3 rounded-xl shadow hover:bg-indigo-700 transition mt-6">マスタ登録</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Table block -->
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div class="p-5 border-b bg-gray-50 flex justify-between items-center">
+                            <h2 class="text-xl font-bold text-gray-800">登録済み部品一覧</h2>
+                            <span class="text-sm text-gray-500 font-medium" th:text="'総件数: ' + ${#lists.size(parts)} + ' 件'"></span>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-100">
+                                    <tr>
+                                        <th class="px-5 py-3 text-left text-xs font-bold text-gray-600 uppercase">コード</th>
+                                        <th class="px-5 py-3 text-left text-xs font-bold text-gray-600 uppercase">名称</th>
+                                        <th class="px-5 py-3 text-center text-xs font-bold text-gray-600 uppercase">単価</th>
+                                        <th class="px-5 py-3 text-center text-xs font-bold text-gray-600 uppercase">単位 / L.T</th>
+                                        <th class="px-5 py-3 text-center text-xs font-bold text-gray-600 uppercase">アクション</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-100">
+                                    <tr th:each="part : ${parts}" class="hover:bg-indigo-50/30 transition">
+                                        <td class="px-5 py-3 text-sm font-bold font-mono text-indigo-700" th:text="${part.productCode}"></td>
+                                        <td class="px-5 py-3 text-sm font-bold text-gray-900" th:text="${part.name}"></td>
+                                        <td class="px-5 py-3 text-sm text-center font-bold text-gray-600" th:text="'¥' + ${part.price}"></td>
+                                        <td class="px-5 py-3 text-sm text-center font-bold text-gray-600"><span class="bg-gray-100 px-2 py-1 rounded-md" th:text="${part.orderUnit} + '個 / ' + ${part.leadTimeDays} + '日'"></span></td>
+                                        <td class="px-5 py-3 text-center">
+                                            <button th:data-code="${part.productCode}"
+                                                    th:data-name="${part.name}"
+                                                    th:data-price="${part.price}"
+                                                    th:data-unit="${part.orderUnit}"
+                                                    th:data-date="${part.expirationDate}"
+                                                    th:data-lead="${part.leadTimeDays}"
+                                                    onclick="editPartMaster(this)"
+                                                    class="text-xs bg-white border items-center border-gray-300 hover:border-indigo-500 hover:text-indigo-600 text-gray-700 py-1 px-3 rounded shadow-sm font-bold transition">修正</button>
+                                        </td>
+                                    </tr>
+                                    <tr th:if="${#lists.isEmpty(parts)}">
+                                        <td colspan="5" class="px-6 py-10 text-center text-gray-500 font-bold border-dashed border-2 border-gray-100 rounded-xl m-4">
+                                            登録された部品マスターデータがありません。
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Supplier Master Pane -->
+        <div id="supplier-pane" class="tab-pane hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Registration Form block -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6 sticky top-24">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 id="supActionTitle" class="text-xl font-extrabold text-blue-800">取引先新規登録</h2>
+                            <button type="button" id="supCancelBtn" onclick="resetSupplierForm()" class="hidden text-sm text-gray-500 hover:text-blue-600 font-bold underline transition">登録へ戻る</button>
+                        </div>
+                        <form action="/master/supplier/register" method="post" id="supplierMasterForm">
+                            <input type="hidden" name="id" id="supInputId">
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-1">取引先識別コード</label>
+                                    <input type="text" name="supplierCode" id="supInputCode" required class="block w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 font-mono font-bold bg-white transition">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-1">取引先名称 (会社名)</label>
+                                    <input type="text" name="name" id="supInputName" required class="block w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 font-bold bg-white transition">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-1">連絡先 / 担当者等</label>
+                                    <input type="text" name="contactInfo" id="supInputContact" class="block w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500 font-bold">
+                                </div>
+                                <button type="submit" id="supSubmitBtn" class="w-full bg-blue-600 text-white font-extrabold py-3 rounded-xl shadow-md hover:bg-blue-700 transition mt-6">取引先登録</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Table block -->
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div class="p-5 border-b bg-gray-50 flex justify-between items-center">
+                            <h2 class="text-xl font-bold text-gray-800">登録済み取引先一覧</h2>
+                            <span class="text-sm text-gray-500 font-medium" th:text="'総件数: ' + ${#lists.size(suppliers)} + ' 件'"></span>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-100">
+                                    <tr>
+                                        <th class="px-5 py-3 text-left text-xs font-bold text-gray-600 uppercase">識別コード</th>
+                                        <th class="px-5 py-3 text-left text-xs font-bold text-gray-600 uppercase">取引先名称</th>
+                                        <th class="px-5 py-3 text-left text-xs font-bold text-gray-600 uppercase">連絡先情報</th>
+                                        <th class="px-5 py-3 text-center text-xs font-bold text-gray-600 uppercase">登録日</th>
+                                        <th class="px-5 py-3 text-center text-xs font-bold text-gray-600 uppercase">アクション</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-100">
+                                    <tr th:each="sup : ${suppliers}" class="hover:bg-blue-50/30 transition">
+                                        <td class="px-5 py-3 text-sm font-bold font-mono text-gray-600" th:text="${sup.supplierCode}"></td>
+                                        <td class="px-5 py-3 text-sm font-black text-gray-900" th:text="${sup.name}"></td>
+                                        <td class="px-5 py-3 text-sm font-medium text-gray-600" th:text="${sup.contactInfo}"></td>
+                                        <td class="px-5 py-3 text-sm text-center font-bold text-gray-500" th:text="${#temporals.format(sup.createdAt, 'yyyy-MM-dd')}"></td>
+                                        <td class="px-5 py-3 text-center">
+                                            <button th:data-id="${sup.id}"
+                                                    th:data-code="${sup.supplierCode}"
+                                                    th:data-name="${sup.name}"
+                                                    th:data-contact="${sup.contactInfo}"
+                                                    onclick="editSupplierMaster(this)"
+                                                    class="text-xs bg-white border items-center border-gray-300 hover:border-blue-500 hover:text-blue-600 text-gray-700 py-1 px-3 rounded shadow-sm font-bold transition">修正</button>
+                                        </td>
+                                    </tr>
+                                    <tr th:if="${#lists.isEmpty(suppliers)}">
+                                        <td colspan="5" class="px-6 py-10 text-center text-gray-500 font-bold border-dashed border-2 border-gray-100 rounded-xl m-4">
+                                            登録された取引先データがありません。
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </body>
 </html>
