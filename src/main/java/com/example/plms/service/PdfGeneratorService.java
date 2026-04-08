@@ -26,9 +26,12 @@ public class PdfGeneratorService {
     public void generateSupplierSettlementZip(List<ReceiptLog> logs, LocalDate startDate, LocalDate endDate, ZipOutputStream zos) throws Exception {
         
         // Group by Supplier (Handle null suppliers safely by creating a dummy record or grouping to "Unspecified")
+        Supplier dummySupplier = new Supplier();
+        dummySupplier.setName("미지정_거래처");
+
         Map<Supplier, List<ReceiptLog>> groupedLogs = logs.stream()
                 .filter(log -> log.getOrder() != null)
-                .collect(Collectors.groupingBy(log -> log.getOrder().getSupplier() == null ? new Supplier() : log.getOrder().getSupplier()));
+                .collect(Collectors.groupingBy(log -> log.getOrder().getSupplier() == null ? dummySupplier : log.getOrder().getSupplier()));
 
         // Load Font
         ClassPathResource fontResource = new ClassPathResource("NotoSansJP.ttf");

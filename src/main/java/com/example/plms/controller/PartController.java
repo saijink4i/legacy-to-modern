@@ -218,9 +218,13 @@ public class PartController {
         List<com.example.plms.domain.ReceiptLog> receipts = partService.getReceiptsBetween(start, end);
 
         // Group explicitly for View presentation
+        com.example.plms.domain.Supplier dummySupplier = new com.example.plms.domain.Supplier();
+        dummySupplier.setName("미지정_거래처");
+        dummySupplier.setSupplierCode("NONE");
+
         Map<com.example.plms.domain.Supplier, Long> summary = receipts.stream()
             .collect(Collectors.groupingBy(
-                r -> r.getOrder().getSupplier() == null ? new com.example.plms.domain.Supplier() : r.getOrder().getSupplier(),
+                r -> r.getOrder().getSupplier() == null ? dummySupplier : r.getOrder().getSupplier(),
                 Collectors.summingLong(r -> (long) r.getReceivedQuantity() * r.getOrder().getPart().getPrice())
             ));
 

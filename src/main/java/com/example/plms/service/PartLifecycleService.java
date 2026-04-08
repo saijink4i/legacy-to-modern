@@ -180,6 +180,10 @@ public class PartLifecycleService {
         order.setExpectedArrivalDate(expectedArrivalDate != null ? expectedArrivalDate : minDate);
         order.setRemarks(remarks);
         
+        if (supplierId != null) {
+            supplierRepository.findById(supplierId).ifPresent(order::setSupplier);
+        }
+        
         // 재고 마스터 업데이트: 입하 예정 수량 증가
         inventory.setPendingIncoming(inventory.getPendingIncoming() + totalQuantity);
         inventoryRepository.save(inventory);
