@@ -252,7 +252,9 @@ public class PartLifecycleService {
         order.setLastReceiptDate(java.time.LocalDateTime.now());
         
         // 상태값 동적 변경 (초과수납 포함)
-        if (order.getReceivedQuantity() >= order.getQuantity()) {
+        if (order.getReceivedQuantity() > order.getQuantity()) {
+            order.setStatus(OrderStatus.OVER_RECEIVED);
+        } else if (order.getReceivedQuantity() == order.getQuantity()) {
             order.setStatus(OrderStatus.COMPLETED);
         }
         orderRepository.save(order);
