@@ -130,6 +130,11 @@ public class PartLifecycleService {
         orders.sort(Comparator.comparing(PurchaseOrder::getOrderDate).reversed());
         return orders;
     }
+    
+    @Transactional(readOnly = true)
+    public List<ReceiptLog> getAllReceiptLogs() {
+        return receiptRepository.findAllByOrderByReceiveDateDesc();
+    }
 
     // 1. 발주 (Order)
     public PurchaseOrder orderPart(String productCode, int quantity, String remarks, LocalDate expectedArrivalDate, Long supplierId) {
@@ -216,8 +221,12 @@ public class PartLifecycleService {
         return orderRepository.save(order);
     }
 
-    // 2. 바코드 기반 입하 처리 (Receive)
-    public ReceiptLog receiveOrder(String orderNumber) {
+    // 2. 바코드 기반 입하 처리 (Receive - Partial Supported)
+    public ReceiptLog receiveOrder(String orderNumber, int actualReceivedQuantity) {
+        if (actualReceivedQuantity <= 0) {
+            throw new IllegalArgumentException("입수량은 1개 이상이어야 합니다.");
+        }
+
         PurchaseOrder order = orderRepository.findByOrderNumber(orderNumber)
                 .orElseThrow(() -> new IllegalArgumentException("해당 주문번호 (" + orderNumber + ")를 찾을 수 없습니다."));
 
@@ -228,19 +237,30 @@ public class PartLifecycleService {
         Inventory inventory = inventoryRepository.findByPart(order.getPart())
                 .orElseThrow(() -> new IllegalStateException("재고 마스터가 존재하지 않습니다."));
 
-        // 상태값 변경
-        order.setStatus(OrderStatus.COMPLETED);
-        orderRepository.save(order);
+        // Calculate differences
+        int oldRemaining = order.getQuantity() - order.getReceivedQuantity();
+        int safeDeduct = Math.min(actualReceivedQuantity, oldRemaining);
+        if (safeDeduct < 0) safeDeduct = 0; // Guard just in case
 
-        // 재고 마스터 업데이트: 예정 수량 차감, 실제 재고 증가
-        inventory.setPendingIncoming(inventory.getPendingIncoming() - order.getQuantity());
-        inventory.setCurrentStock(inventory.getCurrentStock() + order.getQuantity());
+        // 재고 마스터 업데이트: 예정 수량 차감(최대 잔여량까지만), 실제 재고 증가
+        inventory.setPendingIncoming(Math.max(0, inventory.getPendingIncoming() - safeDeduct));
+        inventory.setCurrentStock(inventory.getCurrentStock() + actualReceivedQuantity);
         inventoryRepository.save(inventory);
+
+        // Update Tracker
+        order.setReceivedQuantity(order.getReceivedQuantity() + actualReceivedQuantity);
+        order.setLastReceiptDate(java.time.LocalDateTime.now());
+        
+        // 상태값 동적 변경 (초과수납 포함)
+        if (order.getReceivedQuantity() >= order.getQuantity()) {
+            order.setStatus(OrderStatus.COMPLETED);
+        }
+        orderRepository.save(order);
 
         // 입하 로그 기록
         ReceiptLog log = new ReceiptLog();
         log.setOrder(order);
-        log.setReceivedQuantity(order.getQuantity());
+        log.setReceivedQuantity(actualReceivedQuantity);
         log.setRemarks("바코드 스캔 입고 완료");
 
         return receiptRepository.save(log);

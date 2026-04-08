@@ -53,8 +53,8 @@
                             <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">注文No / 日時</th>
                             <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">対象部品</th>
                             <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">取引先 (Supplier)</th>
-                            <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">予定数量 (個)</th>
-                            <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">入庫予定日</th>
+                            <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">数量 (入庫 / 予定)</th>
+                            <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">入庫予定日 / 最終入庫</th>
                             <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">ステータス</th>
                             <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">アクション</th>
                         </tr>
@@ -73,14 +73,23 @@
                                 <div class="text-sm font-bold text-blue-800 bg-blue-50 inline-block px-2 py-1 rounded" th:text="${order.supplier != null ? order.supplier.name : '未指定'}"></div>
                             </td>
                             <td class="px-6 py-4 text-center">
-                                <span class="text-lg font-black text-blue-600" th:text="${order.quantity}"></span>
+                                <div class="flex items-center justify-center gap-1">
+                                    <span class="text-xl font-black text-green-600" th:text="${order.receivedQuantity}"></span>
+                                    <span class="text-sm font-bold text-gray-400">/</span>
+                                    <span class="text-sm font-bold text-blue-800" th:text="${order.quantity}"></span>
+                                </div>
                             </td>
                             <td class="px-6 py-4 text-center">
-                                <span class="text-sm font-bold text-gray-700" th:text="${order.expectedArrivalDate != null ? #temporals.format(order.expectedArrivalDate, 'yyyy-MM-dd') : '未定'}"></span>
+                                <div class="text-sm font-bold text-gray-700" th:text="${order.expectedArrivalDate != null ? #temporals.format(order.expectedArrivalDate, 'yyyy-MM-dd') : '未定'}"></div>
+                                <div class="text-[10px] text-gray-400 mt-1" th:if="${order.lastReceiptDate != null}" th:text="'(最: ' + ${#temporals.format(order.lastReceiptDate, 'yyyy-MM-dd HH:mm')} + ')'"></div>
+                                <div class="text-[10px] text-gray-300 mt-1" th:unless="${order.lastReceiptDate != null}">(未入庫)</div>
                             </td>
                             <td class="px-6 py-4 text-center">
-                                <span th:if="${order.status.name() == 'PENDING'}" class="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200">
-                                    入庫待機中
+                                <span th:if="${order.status.name() == 'PENDING' && order.receivedQuantity == 0}" class="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200">
+                                    入庫待機
+                                </span>
+                                <span th:if="${order.status.name() == 'PENDING' && order.receivedQuantity > 0}" class="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+                                    部分入庫中
                                 </span>
                                 <span th:if="${order.status.name() == 'COMPLETED'}" class="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-green-100 text-green-800 border border-green-200">
                                     入庫完了

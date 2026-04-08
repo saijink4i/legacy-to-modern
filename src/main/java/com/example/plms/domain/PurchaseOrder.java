@@ -26,11 +26,15 @@ public class PurchaseOrder {
     @Column(nullable = false)
     private int quantity;
 
+    @Column(nullable = false)
+    private int receivedQuantity = 0;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private OrderStatus status;
 
     private LocalDate expectedArrivalDate;
+    private LocalDateTime lastReceiptDate;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime orderDate;
@@ -48,10 +52,14 @@ public class PurchaseOrder {
     public void setSupplier(Supplier supplier) { this.supplier = supplier; }
     public int getQuantity() { return quantity; }
     public void setQuantity(int quantity) { this.quantity = quantity; }
+    public int getReceivedQuantity() { return receivedQuantity; }
+    public void setReceivedQuantity(int receivedQuantity) { this.receivedQuantity = receivedQuantity; }
     public OrderStatus getStatus() { return status; }
     public void setStatus(OrderStatus status) { this.status = status; }
     public LocalDate getExpectedArrivalDate() { return expectedArrivalDate; }
     public void setExpectedArrivalDate(LocalDate expectedArrivalDate) { this.expectedArrivalDate = expectedArrivalDate; }
+    public LocalDateTime getLastReceiptDate() { return lastReceiptDate; }
+    public void setLastReceiptDate(LocalDateTime lastReceiptDate) { this.lastReceiptDate = lastReceiptDate; }
     public LocalDateTime getOrderDate() { return orderDate; }
     public String getRemarks() { return remarks; }
     public void setRemarks(String remarks) { this.remarks = remarks; }

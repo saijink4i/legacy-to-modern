@@ -45,25 +45,26 @@
             <div class="p-10">
                 <!-- Alerts -->
                 <div th:if="${message}" class="bg-green-50 border border-green-200 text-green-700 p-4 mb-8 rounded-lg shadow-sm flex items-center" role="alert">
-                    <svg class="w-6 h-6 mr-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <svg class="w-6 h-6 mr-3 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     <p th:text="${message}" class="font-bold text-lg"></p>
                 </div>
                 <div th:if="${error}" class="bg-red-50 border border-red-200 text-red-700 p-4 mb-8 rounded-lg shadow-sm flex items-center" role="alert">
-                    <svg class="w-6 h-6 mr-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <svg class="w-6 h-6 mr-3 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     <p th:text="${error}" class="font-bold text-lg"></p>
                 </div>
 
-                <form action="/receive/process" method="post" id="barcodeForm" class="relative z-20">
+                <!-- Virtual Scanner Form -->
+                <div class="relative z-20">
                     <div class="relative rounded-xl border-4 border-indigo-100 bg-indigo-50/30 overflow-visible group focus-within:border-indigo-400 transition" id="inputContainer">
                         <!-- Scanner Animation -->
                         <div class="scanner-beam hidden group-focus-within:block"></div>
                         
                         <input type="text" 
-                               name="orderNumber" 
                                id="orderNumber" 
                                placeholder="バコードをスキャン..." 
                                autofocus 
                                autocomplete="off"
+                               onkeypress="handleScannerEnter(event)"
                                class="w-full text-center text-4xl font-mono text-indigo-900 bg-transparent py-12 focus:outline-none placeholder-gray-300 tracking-widest relative z-20">
                         
                         <!-- Autocomplete Dropdown -->
@@ -71,6 +72,12 @@
                             <!-- Populated by JS -->
                         </ul>
                     </div>
+                </div>
+
+                <!-- Real Form Hidden under the hood -->
+                <form action="/receive/process" method="post" id="realSubmitForm" class="hidden">
+                    <input type="hidden" name="orderNumber" id="receiveSubmitOrderNo">
+                    <input type="hidden" name="receivedQuantity" id="receiveSubmitQty">
                 </form>
             </div>
             <div class="bg-gray-50 border-t border-gray-100 p-6 text-center">
@@ -178,11 +185,11 @@
                     li.appendChild(leftDiv);
                     li.appendChild(rightDiv);
 
-                    // Setup auto-submit on click
+                    // Setup User Confirmation on click
                     li.addEventListener('click', function() {
                         orderInput.value = o.orderNumber;
                         acList.classList.add('hidden');
-                        form.submit(); // Instant Submit
+                        triggerEntryFlow(o);
                     });
 
                     acList.appendChild(li);
@@ -191,6 +198,45 @@
                 acList.classList.add('hidden');
             }
         });
+
+        // Trigger logic abstract
+        function triggerEntryFlow(orderObj) {
+            let remain = orderObj.quantity - (orderObj.receivedQuantity || 0);
+            if (remain <= 0) remain = orderObj.quantity; // Guard
+
+            let promptQ = prompt(`[${orderObj.orderNumber}] ${orderObj.part.name}\n현재 잔여 입고(예정)수량은 ${remain}개입니다.\n\n실제로 입고된 수량을 입력해주세요:`, remain);
+            
+            if (promptQ !== null) {
+                let qtyNum = parseInt(promptQ);
+                if (isNaN(qtyNum) || qtyNum <= 0) {
+                    alert('유효하지 않은 수량입니다. 처리를 취소합니다.');
+                    return;
+                }
+                
+                if (qtyNum > remain) {
+                    let ok = confirm('⚠️ 지정된 입하 예정 수량을 초과하였습니다!\n초과된 물량이 입고될 예정입니다. 괜찮으시겠습니까?');
+                    if (!ok) return;
+                }
+
+                document.getElementById('receiveSubmitOrderNo').value = orderObj.orderNumber;
+                document.getElementById('receiveSubmitQty').value = qtyNum;
+                document.getElementById('realSubmitForm').submit();
+            }
+            orderInput.focus();
+        }
+
+        function handleScannerEnter(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                const str = orderInput.value.trim().toUpperCase();
+                const match = pendingOrders.find(o => o.orderNumber.toUpperCase() === str);
+                if (match) {
+                    triggerEntryFlow(match);
+                } else {
+                    alert('일치하는 대기 중(PENDING) 주문이 없습니다. 부품 마스터 검색이나 수동 배치를 확인해주세요.');
+                }
+            }
+        }
 
         // --- Modals Control ---
         const modalOverlay = document.getElementById('modalOverlay');

@@ -116,6 +116,31 @@
                     現在、入荷待ちの注文はありません。
                 </div>
             </div>
+
+            <h3 class="font-bold text-gray-700 mt-6 mb-3 border-b pb-2">📥 過去の入庫履歴 (Receipt History)</h3>
+            <div class="max-h-56 overflow-y-auto">
+                <div th:if="${receiptLogsMap.containsKey(inv.part.productCode)}">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+                            <tr>
+                                <th class="px-4 py-2 border-b">関連注文No</th>
+                                <th class="px-4 py-2 border-b">入庫日時</th>
+                                <th class="px-4 py-2 border-b">入庫数量</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="log : ${receiptLogsMap.get(inv.part.productCode)}" class="border-b">
+                                <td class="px-4 py-3 font-mono font-bold text-indigo-700 bg-indigo-50 rounded" th:text="${log.order.orderNumber}"></td>
+                                <td class="px-4 py-3 text-xs text-gray-600" th:text="${#temporals.format(log.receiveDate, 'yyyy-MM-dd HH:mm')}"></td>
+                                <td class="px-4 py-3 font-bold text-green-600" th:text="${log.receivedQuantity} + '個'"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div th:unless="${receiptLogsMap.containsKey(inv.part.productCode)}" class="text-center py-6 text-gray-400 text-sm">
+                    過去の入庫履歴が存在しません。
+                </div>
+            </div>
             
             <div class="mt-6 flex justify-end">
                 <button onclick="closeAllModals()" class="px-4 py-2 bg-gray-100 font-bold text-gray-600 rounded">閉じる</button>

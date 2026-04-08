@@ -44,8 +44,12 @@ public class PartController {
         Map<String, List<PurchaseOrder>> pendingOrdersMap = pendingOrders.stream()
                 .collect(Collectors.groupingBy(t -> t.getPart().getProductCode()));
 
+        Map<String, List<com.example.plms.domain.ReceiptLog>> receiptLogsMap = partService.getAllReceiptLogs().stream()
+                .collect(Collectors.groupingBy(r -> r.getOrder().getPart().getProductCode()));
+
         model.addAttribute("inventories", activeInventories);
         model.addAttribute("pendingOrdersMap", pendingOrdersMap);
+        model.addAttribute("receiptLogsMap", receiptLogsMap);
         return "inventory";
     }
 
@@ -59,10 +63,10 @@ public class PartController {
 
     // Barcode Receive Processing
     @PostMapping("/receive/process")
-    public String processReceive(@RequestParam String orderNumber, RedirectAttributes redirectAttributes) {
+    public String processReceive(@RequestParam String orderNumber, @RequestParam int receivedQuantity, RedirectAttributes redirectAttributes) {
         try {
-            partService.receiveOrder(orderNumber.trim());
-            redirectAttributes.addFlashAttribute("message", "注文No [" + orderNumber + "] の入庫処理が成功的に完了されました。");
+            partService.receiveOrder(orderNumber.trim(), receivedQuantity);
+            redirectAttributes.addFlashAttribute("message", "注文No [" + orderNumber + "] の入庫処理 (" + receivedQuantity + "個) が完了されました。");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "入庫失敗: " + e.getMessage());
         }
