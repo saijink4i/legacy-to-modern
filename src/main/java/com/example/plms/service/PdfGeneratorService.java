@@ -72,7 +72,7 @@ public class PdfGeneratorService {
         
         // Group by Supplier (Handle null suppliers safely by creating a dummy record or grouping to "Unspecified")
         Supplier dummySupplier = new Supplier();
-        dummySupplier.setName("미지정_거래처");
+        dummySupplier.setName("未指定_取引先");
 
         Map<Supplier, List<ReceiptLog>> groupedLogs = logs.stream()
                 .filter(log -> log.getOrder() != null)
@@ -97,7 +97,7 @@ public class PdfGeneratorService {
             Supplier supplier = entry.getKey();
             List<ReceiptLog> supplierLogs = entry.getValue();
 
-            String supplierName = supplier.getName() != null ? supplier.getName() : "미지정_거래처";
+            String supplierName = supplier.getName() != null ? supplier.getName() : "未指定_取引先";
             String safeFilename = supplierName.replaceAll("[\\\\/:*?\"<>|]", "_") + "_" + startDate + "_to_" + endDate + ".pdf";
 
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -116,18 +116,18 @@ public class PdfGeneratorService {
             DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             String nowStr = java.time.LocalDateTime.now().format(dtf);
             
-            document.add(new Paragraph("기간 : " + startDate + " ~ " + endDate, normalFont));
-            document.add(new Paragraph("대상 회사 : " + supplierName, boldFont));
-            document.add(new Paragraph("출력일 : " + nowStr, normalFont));
+            document.add(new Paragraph("対象期間 : " + startDate + " ~ " + endDate, normalFont));
+            document.add(new Paragraph("取引先 : " + supplierName, boldFont));
+            document.add(new Paragraph("出力日時 : " + nowStr, normalFont));
             document.add(new Paragraph(" ", normalFont)); // Spacing
 
             // 3. Table (7 Columns)
             PdfPTable table = new PdfPTable(7);
             table.setWidthPercentage(100);
-            table.setWidths(new float[]{1.5f, 1.5f, 2f, 2.5f, 1f, 1f, 1.5f});
+            table.setWidths(new float[]{1.5f, 1.5f, 2f, 2.5f, 1.2f, 1.2f, 1.8f});
 
             // Table Headers
-            String[] headers = {"발주일", "입고일", "발주번호", "부품명", "발주갯수", "입고갯수", "청구금액(¥)"};
+            String[] headers = {"発注日", "入庫日", "注文No", "部品名", "発注数量", "入庫数量", "請求金額(¥)"};
             for (String h : headers) {
                 PdfPCell cell = new PdfPCell(new Phrase(h, headerFont));
                 cell.setBackgroundColor(new Color(240, 240, 240));
@@ -172,7 +172,7 @@ public class PdfGeneratorService {
 
             // 4. Grand Total
             document.add(new Paragraph(" ", normalFont));
-            Paragraph totalP = new Paragraph("총 청구 금액: ¥ " + String.format("%,d", grandTotal), titleFont);
+            Paragraph totalP = new Paragraph("合計請求金額 : ¥ " + String.format("%,d", grandTotal), titleFont);
             totalP.setAlignment(Element.ALIGN_RIGHT);
             document.add(totalP);
 
@@ -189,7 +189,7 @@ public class PdfGeneratorService {
         if (groupedLogs.isEmpty()) {
             ZipEntry emptyEntry = new ZipEntry("NO_DATA.txt");
             zos.putNextEntry(emptyEntry);
-            zos.write("해당 기간의 정산 데이터가 존재하지 않습니다. (No Settlement Data)".getBytes("UTF-8"));
+            zos.write("該当期間の精算データが存在しません。 (No Settlement Data)".getBytes("UTF-8"));
             zos.closeEntry();
         }
     }
