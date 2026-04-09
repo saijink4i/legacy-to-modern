@@ -251,7 +251,19 @@ public class PartController {
             response.setHeader("Content-Disposition", "attachment; filename=\"Settlements_" + startDate + "_to_" + endDate + ".zip\"");
 
             ZipOutputStream zos = new ZipOutputStream(response.getOutputStream());
-            pdfGeneratorService.generateSupplierSettlementZip(logs, start, end, zos);
+            try {
+                pdfGeneratorService.generateSupplierSettlementZip(logs, start, end, zos);
+            } catch (Exception innerEx) {
+                // Return Error document inside the zip to bypass ERR_INVALID_RESPONSE on browser layer
+                java.util.zip.ZipEntry errorEntry = new java.util.zip.ZipEntry("GENERATION_ERROR.txt");
+                zos.putNextEntry(errorEntry);
+                String errorTrace = "PDF 생성을 실패했습니다. 잠시 후 닫지 않고 다시 시도해 주세요.\n\n" + innerEx.toString() + "\n";
+                for(StackTraceElement el : innerEx.getStackTrace()) {
+                    errorTrace += el.toString() + "\n";
+                }
+                zos.write(errorTrace.getBytes("UTF-8"));
+                zos.closeEntry();
+            }
             zos.close();
 
         } catch (Exception e) {

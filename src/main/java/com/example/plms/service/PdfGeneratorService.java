@@ -33,10 +33,16 @@ public class PdfGeneratorService {
                 .filter(log -> log.getOrder() != null)
                 .collect(Collectors.groupingBy(log -> log.getOrder().getSupplier() == null ? dummySupplier : log.getOrder().getSupplier()));
 
-        // Load Font
-        ClassPathResource fontResource = new ClassPathResource("NotoSansJP.ttf");
-        byte[] fontBytes = fontResource.getInputStream().readAllBytes();
-        BaseFont bf = BaseFont.createFont("NotoSansJP.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED, true, fontBytes, null);
+        // Load Font from ClassPathResource via Temp File (Safe for Spring Boot FAT Jars)
+        org.springframework.core.io.ClassPathResource fontResource = new org.springframework.core.io.ClassPathResource("NotoSansJP.ttf");
+        java.io.File tempFont = java.io.File.createTempFile("NotoSansJP_", ".ttf");
+        tempFont.deleteOnExit();
+        try (java.io.InputStream is = fontResource.getInputStream();
+             java.io.FileOutputStream fos = new java.io.FileOutputStream(tempFont)) {
+            is.transferTo(fos);
+        }
+        
+        BaseFont bf = BaseFont.createFont(tempFont.getAbsolutePath(), BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
         Font titleFont = new Font(bf, 18, Font.BOLD, Color.BLACK);
         Font headerFont = new Font(bf, 12, Font.BOLD, Color.DARK_GRAY);
         Font normalFont = new Font(bf, 10, Font.NORMAL, Color.BLACK);
