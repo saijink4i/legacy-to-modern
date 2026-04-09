@@ -206,6 +206,10 @@ public class PartLifecycleService {
         if (order.getStatus() != OrderStatus.PENDING) {
             throw new IllegalStateException("입하 대기 중(PENDING)인 발주 건만 수정할 수 있습니다.");
         }
+        
+        if (order.getReceivedQuantity() > 0) {
+            throw new IllegalStateException("해당 발주는 이미 입고가 일부 진행되었으므로 발주 정보를 더 이상 수정할 수 없습니다.");
+        }
 
         Part part = order.getPart();
         Inventory inventory = inventoryRepository.findByPart(part)
