@@ -126,5 +126,13 @@ public class PdfGeneratorService {
             zos.write(baos.toByteArray());
             zos.closeEntry();
         }
+        
+        // Prevent java.util.zip.ZipException when there are no logs to process in the time period
+        if (groupedLogs.isEmpty()) {
+            ZipEntry emptyEntry = new ZipEntry("NO_DATA.txt");
+            zos.putNextEntry(emptyEntry);
+            zos.write("해당 기간의 정산 데이터가 존재하지 않습니다. (No Settlement Data)".getBytes("UTF-8"));
+            zos.closeEntry();
+        }
     }
 }
