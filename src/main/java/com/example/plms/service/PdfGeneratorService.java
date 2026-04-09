@@ -7,6 +7,9 @@ import com.lowagie.text.pdf.BaseFont;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
+import com.lowagie.text.pdf.PdfPageEventHelper;
+import com.lowagie.text.pdf.PdfContentByte;
+import com.lowagie.text.pdf.PdfTemplate;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +25,48 @@ import java.util.zip.ZipOutputStream;
 
 @Service
 public class PdfGeneratorService {
+
+    // Helper class for Page Number drawing (Current / Total)
+    static class PageNumberEvent extends PdfPageEventHelper {
+        private Font normalFont;
+        private PdfTemplate totalPagesTemplate;
+        
+        public PageNumberEvent(Font normalFont) {
+            this.normalFont = normalFont;
+        }
+        
+        @Override
+        public void onOpenDocument(PdfWriter writer, Document document) {
+            totalPagesTemplate = writer.getDirectContent().createTemplate(30, 16);
+        }
+        
+        @Override
+        public void onEndPage(PdfWriter writer, Document document) {
+            PdfContentByte cb = writer.getDirectContent();
+            String text = writer.getPageNumber() + " / ";
+            float textSize = normalFont.getBaseFont().getWidthPoint(text, 10);
+            
+            cb.beginText();
+            cb.setFontAndSize(normalFont.getBaseFont(), 10);
+            
+            float textBase = document.bottom() - 15;
+            float center = document.getPageSize().getWidth() / 2;
+            
+            cb.setTextMatrix(center - (textSize / 2), textBase);
+            cb.showText(text);
+            cb.endText();
+            
+            cb.addTemplate(totalPagesTemplate, center + (textSize / 2), textBase);
+        }
+        
+        @Override
+        public void onCloseDocument(PdfWriter writer, Document document) {
+            totalPagesTemplate.beginText();
+            totalPagesTemplate.setFontAndSize(normalFont.getBaseFont(), 10);
+            totalPagesTemplate.showText(String.valueOf(writer.getPageNumber()));
+            totalPagesTemplate.endText();
+        }
+    }
 
     public void generateSupplierSettlementZip(List<ReceiptLog> logs, LocalDate startDate, LocalDate endDate, ZipOutputStream zos) throws Exception {
         
@@ -57,29 +102,32 @@ public class PdfGeneratorService {
 
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             Document document = new Document(PageSize.A4);
-            PdfWriter.getInstance(document, baos);
+            PdfWriter writer = PdfWriter.getInstance(document, baos);
+            writer.setPageEvent(new PageNumberEvent(normalFont));
             document.open();
 
             // 1. Header String
-            Paragraph title = new Paragraph("정산 전표 (Settlement Invoice)", titleFont);
+            Paragraph title = new Paragraph("清算書", titleFont);
             title.setAlignment(Element.ALIGN_CENTER);
-            title.setSpacingAfter(20);
+            title.setSpacingAfter(25);
             document.add(title);
 
             // 2. Info Block
-            String periodStr = "정산 기간: " + startDate + " ~ " + endDate;
-            document.add(new Paragraph(periodStr, normalFont));
-            document.add(new Paragraph("거래처명: " + supplierName, boldFont));
-            document.add(new Paragraph("발행일자: " + LocalDate.now(), normalFont));
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            String nowStr = java.time.LocalDateTime.now().format(dtf);
+            
+            document.add(new Paragraph("기간 : " + startDate + " ~ " + endDate, normalFont));
+            document.add(new Paragraph("대상 회사 : " + supplierName, boldFont));
+            document.add(new Paragraph("출력일 : " + nowStr, normalFont));
             document.add(new Paragraph(" ", normalFont)); // Spacing
 
-            // 3. Table
-            PdfPTable table = new PdfPTable(6);
+            // 3. Table (7 Columns)
+            PdfPTable table = new PdfPTable(7);
             table.setWidthPercentage(100);
-            table.setWidths(new float[]{1.5f, 2f, 3f, 1f, 1.5f, 1.5f});
+            table.setWidths(new float[]{1.5f, 1.5f, 2f, 2.5f, 1f, 1f, 1.5f});
 
             // Table Headers
-            String[] headers = {"입고일시", "주문번호", "부품명", "수량", "단가(¥)", "합계(¥)"};
+            String[] headers = {"발주일", "입고일", "발주번호", "부품명", "발주갯수", "입고갯수", "청구금액(¥)"};
             for (String h : headers) {
                 PdfPCell cell = new PdfPCell(new Phrase(h, headerFont));
                 cell.setBackgroundColor(new Color(240, 240, 240));
@@ -89,28 +137,32 @@ public class PdfGeneratorService {
             }
 
             long grandTotal = 0;
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yy-MM-dd HH:mm");
+            DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("yy-MM-dd");
 
             for (ReceiptLog log : supplierLogs) {
-                String date = log.getReceiveDate().format(formatter);
+                String orderDate = log.getOrder().getOrderDate().format(dateFmt);
+                String receiveDate = log.getReceiveDate().format(dateFmt);
                 String orderNo = log.getOrder().getOrderNumber();
                 String partName = log.getOrder().getPart().getName();
-                int qty = log.getReceivedQuantity();
+                
+                int orderQty = log.getOrder().getQuantity();
+                int recvQty = log.getReceivedQuantity();
                 int price = log.getOrder().getPart().getPrice();
-                long total = (long) qty * price;
+                long total = (long) recvQty * price;
                 grandTotal += total;
 
-                table.addCell(new PdfPCell(new Phrase(date, normalFont)));
+                table.addCell(new PdfPCell(new Phrase(orderDate, normalFont)));
+                table.addCell(new PdfPCell(new Phrase(receiveDate, normalFont)));
                 table.addCell(new PdfPCell(new Phrase(orderNo, normalFont)));
                 table.addCell(new PdfPCell(new Phrase(partName, normalFont)));
                 
-                PdfPCell qtyCell = new PdfPCell(new Phrase(String.valueOf(qty), normalFont));
-                qtyCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
-                table.addCell(qtyCell);
-
-                PdfPCell priceCell = new PdfPCell(new Phrase(String.format("%,d", price), normalFont));
-                priceCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
-                table.addCell(priceCell);
+                PdfPCell oQtyCell = new PdfPCell(new Phrase(String.valueOf(orderQty), normalFont));
+                oQtyCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                table.addCell(oQtyCell);
+                
+                PdfPCell rQtyCell = new PdfPCell(new Phrase(String.valueOf(recvQty), normalFont));
+                rQtyCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                table.addCell(rQtyCell);
 
                 PdfPCell totalCell = new PdfPCell(new Phrase(String.format("%,d", total), normalFont));
                 totalCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
@@ -120,7 +172,7 @@ public class PdfGeneratorService {
 
             // 4. Grand Total
             document.add(new Paragraph(" ", normalFont));
-            Paragraph totalP = new Paragraph("총 정산 대금: ¥ " + String.format("%,d", grandTotal), titleFont);
+            Paragraph totalP = new Paragraph("총 청구 금액: ¥ " + String.format("%,d", grandTotal), titleFont);
             totalP.setAlignment(Element.ALIGN_RIGHT);
             document.add(totalP);
 
