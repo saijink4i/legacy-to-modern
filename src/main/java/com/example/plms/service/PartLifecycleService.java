@@ -154,6 +154,9 @@ public class PartLifecycleService {
         if (quantity <= 0) {
             throw new IllegalArgumentException("발주 수량은 1개 이상이어야 합니다.");
         }
+        if (supplierId == null) {
+            throw new IllegalArgumentException("발주 시 반드시 거래처를 지정해야 합니다.");
+        }
 
         Part part = partRepository.findByProductCode(productCode)
                 .orElseThrow(() -> new IllegalArgumentException("해당 부품 코드(" + productCode + ")를 찾을 수 없습니다."));
