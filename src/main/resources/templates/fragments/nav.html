@@ -5,12 +5,12 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <div class="flex items-center">
-                    <div class="flex-shrink-0 flex items-center gap-2">
+                    <a href="/" class="flex-shrink-0 flex items-center gap-2 hover:opacity-80 transition cursor-pointer decoration-none">
                         <span class="text-white font-extrabold text-xl tracking-wider">PLMS</span>
                         <span class="text-indigo-400 text-xs font-bold px-2 py-0.5 rounded-full border border-indigo-400">ERP</span>
-                    </div>
+                    </a>
                     <div class="hidden md:block">
-                        <div class="ml-10 flex items-baseline space-x-4">
+                        <div class="ml-10 flex items-center space-x-1">
                             <!-- Helper logic: determine active class dynamically -->
                             <a href="/inventory" th:classappend="${activeTab == 'inventory' ? 'bg-gray-800 text-white border-b-2 border-indigo-400' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}" class="px-3 py-2 rounded-t-md text-sm font-medium transition flex items-center gap-2">
                                 <span>📦</span> 在庫確認 (Inventory)
